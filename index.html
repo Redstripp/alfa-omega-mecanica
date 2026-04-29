@@ -1573,7 +1573,7 @@ async function editarOrdem(id) {
   document.getElementById('ord-veiculo-km').value     = o.veiculo_km     || '';
 
   // Abre o modal imediatamente com linha vazia
-  itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
+  itemRows = [];
   renderItemRows();
   calcTotal();
   document.getElementById('modal-ordem').classList.add('open');
