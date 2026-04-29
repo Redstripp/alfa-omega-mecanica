@@ -847,6 +847,13 @@ function clienteNome(id) {
   return c ? c.nome : '—';
 }
 
+// Normaliza qualquer formato de data ISO para YYYY-MM-DD
+// Garante que "2025-01-15T10:30:00Z" e "2025-01-15" sejam comparados igualmente
+function toDateStr(val) {
+  if (!val) return '';
+  return String(val).split('T')[0];
+}
+
 document.querySelectorAll('.modal-overlay').forEach(m => {
   m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
 });
@@ -1181,6 +1188,9 @@ async function salvarCliente() {
   const nome = document.getElementById('cli-nome').value.trim();
   if (!nome) { toast('Nome é obrigatório.', 'error'); return; }
 
+  const btn = document.querySelector('#modal-cliente .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
   const id = document.getElementById('cliente-id').value;
   const payload = {
     nome,
@@ -1196,19 +1206,22 @@ async function salvarCliente() {
   };
 
   showLoading();
-  let error;
-  if (id) {
-    ({ error } = await sb.from('clientes').update(payload).eq('id', id));
-  } else {
-    ({ error } = await sb.from('clientes').insert(payload));
+  try {
+    let error;
+    if (id) {
+      ({ error } = await sb.from('clientes').update(payload).eq('id', id));
+    } else {
+      ({ error } = await sb.from('clientes').insert(payload));
+    }
+    if (error) { toast('Erro ao salvar cliente: ' + error.message, 'error'); return; }
+    toast(id ? 'Cliente atualizado!' : 'Cliente cadastrado!');
+    fecharModal('modal-cliente');
+    await recarregarClientes();
+    renderClientes();
+  } finally {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar Cliente'; }
   }
-  hideLoading();
-
-  if (error) { toast('Erro ao salvar cliente: ' + error.message, 'error'); return; }
-  toast(id ? 'Cliente atualizado!' : 'Cliente cadastrado!');
-  fecharModal('modal-cliente');
-  await recarregarClientes();
-  renderClientes();
 }
 
 async function excluirCliente(id) {
@@ -1247,7 +1260,12 @@ async function verHistorico(clienteId) {
 }
 
 async function recarregarClientes() {
-  const { data } = await sb.from('clientes').select('*').eq('ativo', true).order('nome');
+  const { data, error } = await sb.from('clientes').select('*').eq('ativo', true).order('nome');
+  if (error) {
+    console.error('[recarregarClientes] Erro:', error.message);
+    toast('Erro ao atualizar lista de clientes.', 'error');
+    return; // mantém o cache anterior intacto
+  }
   CACHE.clientes = data || [];
 }
 
@@ -1315,34 +1333,40 @@ function editarProduto(id) {
 async function salvarProduto() {
   const nome  = document.getElementById('prod-nome').value.trim();
   const preco = parseFloat(document.getElementById('prod-preco').value);
-  if (!nome)       { toast('Nome é obrigatório.', 'error'); return; }
-  if (isNaN(preco))  { toast('Preço inválido.', 'error'); return; }
+  if (!nome)        { toast('Nome é obrigatório.', 'error'); return; }
+  if (isNaN(preco)) { toast('Preço inválido.', 'error'); return; }
 
-  const id   = document.getElementById('produto-id').value;
-  const tipo = document.getElementById('prod-tipo').value;
+  const btn = document.querySelector('#modal-produto .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  const id = document.getElementById('produto-id').value;
   const payload = {
     nome,
-    tipo,
-    preco_unitario: preco,
-    unidade_medida: document.getElementById('prod-unidade').value,
-    descricao:      document.getElementById('prod-desc').value.trim() || null,
-    estoque_atual:  tipo === 'produto' ? parseInt(document.getElementById('prod-estoque').value) || 0 : 0,
-    estoque_minimo: tipo === 'produto' ? parseInt(document.getElementById('prod-estoque-min').value) || 0 : 0,
+    tipo:            document.getElementById('prod-tipo').value,
+    preco_unitario:  preco,
+    unidade_medida:  document.getElementById('prod-unidade').value,
+    descricao:       document.getElementById('prod-desc').value.trim() || null,
+    estoque_atual:   parseInt(document.getElementById('prod-estoque').value) || 0,
+    estoque_minimo:  parseInt(document.getElementById('prod-estoque-min').value) || 0,
   };
 
   showLoading();
-  let error;
-  if (id) {
-    ({ error } = await sb.from('produtos_servicos').update(payload).eq('id', id));
-  } else {
-    ({ error } = await sb.from('produtos_servicos').insert(payload));
+  try {
+    let error;
+    if (id) {
+      ({ error } = await sb.from('produtos_servicos').update(payload).eq('id', id));
+    } else {
+      ({ error } = await sb.from('produtos_servicos').insert({ ...payload, ativo: true }));
+    }
+    if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
+    toast(id ? 'Produto atualizado!' : 'Produto cadastrado!');
+    fecharModal('modal-produto');
+    await recarregarProdutos();
+    renderProdutos();
+  } finally {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
   }
-  hideLoading();
-  if (error) { toast('Erro ao salvar: ' + error.message, 'error'); return; }
-  toast(id ? 'Produto atualizado!' : 'Produto cadastrado!');
-  fecharModal('modal-produto');
-  await recarregarProdutos();
-  renderProdutos();
 }
 
 async function excluirProduto(id) {
@@ -1357,7 +1381,12 @@ async function excluirProduto(id) {
 }
 
 async function recarregarProdutos() {
-  const { data } = await sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome');
+  const { data, error } = await sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome');
+  if (error) {
+    console.error('[recarregarProdutos] Erro:', error.message);
+    toast('Erro ao atualizar lista de produtos.', 'error');
+    return; // mantém o cache anterior intacto
+  }
   CACHE.produtos = data || [];
 }
 
@@ -1452,10 +1481,13 @@ async function recarregarMovimentacoesEstoque() {
     .select('*, produtos_servicos(nome, unidade_medida)')
     .order('criado_em', { ascending: false })
     .limit(200);
-  if (error) { console.warn('[estoque] histórico indisponível:', error.message); CACHE.movimentacoes = []; return; }
+  if (error) {
+    console.error('[recarregarMovimentacoesEstoque] Erro:', error.message);
+    toast('Erro ao atualizar histórico de estoque.', 'error');
+    return; // mantém o cache anterior intacto
+  }
   CACHE.movimentacoes = data || [];
 }
-
 // ══════════════════════════════════════════════════════════════
 // ORDENS DE SERVIÇO
 // ══════════════════════════════════════════════════════════════
@@ -1670,6 +1702,9 @@ async function salvarOrdem() {
   const valorTotal = itensValidos.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
   const idEdit     = document.getElementById('ordem-id').value;
 
+  const btn = document.querySelector('#modal-ordem .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
+
   showLoading();
 
   if (tipo === 'orcamento') {
@@ -1778,7 +1813,9 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
     await recarregarNotas();
     renderOrdens();
   }
+
   hideLoading();
+  if (btn) { btn.disabled = false; btn.textContent = 'Salvar'; }
 }
 
 async function excluirOrdem(id) {
@@ -1818,9 +1855,14 @@ async function excluirOrdem(id) {
 }
 
 async function recarregarOrdens() {
-  const { data } = await sb.from('ordens_servico')
+  const { data, error } = await sb.from('ordens_servico')
     .select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)')
     .order('criado_em', { ascending: false });
+  if (error) {
+    console.error('[recarregarOrdens] Erro:', error.message);
+    toast('Erro ao atualizar lista de ordens.', 'error');
+    return;
+  }
   CACHE.ordens = data || [];
 }
 
@@ -1992,19 +2034,22 @@ async function converterOrcamento(id) {
     }));
     const { error: errItens } = await sb.from('ordem_servico_itens').insert(itens);
     if (errItens) {
-      toast('Erro ao copiar itens: ' + errItens.message, 'error');
-      console.error('[converter] Erro itens:', errItens);
+      // Rollback: deleta a OS recém-criada para evitar registro órfão
+      await sb.from('ordens_servico').delete().eq('id', os.id);
+      hideLoading();
+      toast('Erro ao copiar itens. Conversão cancelada: ' + errItens.message, 'error');
+      console.error('[converter] Erro itens — OS revertida:', errItens);
+      return;
     }
   }
 
-  await sb.from('orcamentos').update({ status: 'aprovado' }).eq('id', id);
-  hideLoading();
-  // Impede converter novamente se já foi aprovado
-  if (orc.status === 'aprovado') {
-    hideLoading();
-    toast('Este orçamento já foi convertido em OS.', 'error');
-    return;
+  const { error: errAprov } = await sb.from('orcamentos').update({ status: 'aprovado' }).eq('id', id);
+  if (errAprov) {
+    // Não bloqueia — a OS foi criada com sucesso, apenas loga o problema
+    console.warn('[converterOrcamento] Falha ao marcar orçamento como aprovado:', errAprov.message);
   }
+
+  hideLoading();
   toast('Orçamento convertido em OS com sucesso!');
   await recarregarOrdens();
   await recarregarOrcamentos();
@@ -2012,9 +2057,14 @@ async function converterOrcamento(id) {
 }
 
 async function recarregarOrcamentos() {
-  const { data } = await sb.from('orcamentos')
+  const { data, error } = await sb.from('orcamentos')
     .select('*, clientes(nome), orcamento_itens(*)')
     .order('criado_em', { ascending: false });
+  if (error) {
+    console.error('[recarregarOrcamentos] Erro:', error.message);
+    toast('Erro ao atualizar lista de orçamentos.', 'error');
+    return;
+  }
   CACHE.orcamentos = data || [];
 }
 
@@ -2099,34 +2149,43 @@ async function salvarPagamento() {
   const valor = parseFloat(document.getElementById('pag-valor').value);
   if (!valor || valor <= 0) { toast('Informe um valor válido.', 'error'); return; }
 
+  const btn = document.querySelector('#modal-pagamento .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = 'Registrando...'; }
+
   showLoading();
-  const payload = {
-    nota_fiscal_id: nota.id,
-    ordem_servico_id: nota.ordem_servico_id || null,
-    cliente_id: nota.cliente_id || null,
-    usuario_id: currentUser?.id || null,
-    data_pagamento: document.getElementById('pag-data').value || new Date().toISOString().split('T')[0],
-    valor,
-    metodo: document.getElementById('pag-metodo').value,
-    observacao: document.getElementById('pag-obs').value.trim() || null,
-  };
-  const { error } = await sb.from('pagamentos').insert(payload);
-  hideLoading();
-
-  if (error) {
-    toast('Erro ao registrar pagamento. Aplique o arquivo supabase_melhorias.sql no Supabase. Detalhe: ' + error.message, 'error');
-    return;
+  try {
+    const payload = {
+      nota_fiscal_id:   nota.id,
+      ordem_servico_id: nota.ordem_servico_id || null,
+      cliente_id:       nota.cliente_id || null,
+      usuario_id:       currentUser?.id || null,
+      data_pagamento:   document.getElementById('pag-data').value || new Date().toISOString().split('T')[0],
+      valor,
+      metodo:           document.getElementById('pag-metodo').value,
+      observacao:       document.getElementById('pag-obs').value.trim() || null,
+    };
+    const { error } = await sb.from('pagamentos').insert(payload);
+    if (error) {
+      toast('Erro ao registrar pagamento: ' + error.message, 'error');
+      return;
+    }
+    toast('Pagamento registrado!');
+    fecharModal('modal-pagamento');
+    await recarregarPagamentos();
+    renderFinanceiro();
+  } finally {
+    hideLoading();
+    if (btn) { btn.disabled = false; btn.textContent = 'Registrar Pagamento'; }
   }
-
-  toast('Pagamento registrado!');
-  fecharModal('modal-pagamento');
-  await recarregarPagamentos();
-  renderFinanceiro();
 }
 
 async function recarregarPagamentos() {
   const { data, error } = await sb.from('pagamentos').select('*').order('data_pagamento', { ascending: false });
-  if (error) { console.warn('[pagamentos] tabela indisponível:', error.message); CACHE.pagamentos = []; return; }
+  if (error) {
+    console.error('[recarregarPagamentos] Erro:', error.message);
+    toast('Erro ao atualizar pagamentos.', 'error');
+    return; // mantém o cache anterior intacto
+  }
   CACHE.pagamentos = data || [];
 }
 
@@ -2256,9 +2315,14 @@ function mostrarNota(nota, ordem) {
 }
 
 async function recarregarNotas() {
-  const { data } = await sb.from('notas_fiscais')
+  const { data, error } = await sb.from('notas_fiscais')
     .select('*, clientes(nome, cpf_cnpj, telefone, logradouro, cidade, estado), ordens_servico(numero, veiculo_marca, veiculo_modelo, veiculo_placa, status)')
     .order('criado_em', { ascending: false });
+  if (error) {
+    console.error('[recarregarNotas] Erro:', error.message);
+    toast('Erro ao atualizar lista de notas.', 'error');
+    return;
+  }
   CACHE.notas = data || [];
 }
 
@@ -2870,9 +2934,15 @@ async function gerarRelatorio() {
 
   const total      = (lista || []).reduce((s, o) => s + Number(o.valor_total), 0);
   const concluidas = (lista || []).filter(o => ['concluido', 'entregue'].includes(o.status)).length;
-  const notasPeriodo = CACHE.notas.filter(n => !n.cancelada && n.data_emissao >= ini && n.data_emissao <= fim);
+  const notasPeriodo = CACHE.notas.filter(n => {
+    const dataEmissao = toDateStr(n.data_emissao);
+    return !n.cancelada && dataEmissao >= ini && dataEmissao <= fim;
+  });
   const recebidoPeriodo = CACHE.pagamentos
-    .filter(p => p.data_pagamento >= ini && p.data_pagamento <= fim)
+    .filter(p => {
+      const dataPag = toDateStr(p.data_pagamento);
+      return dataPag >= ini && dataPag <= fim;
+    })
     .reduce((s, p) => s + Number(p.valor || 0), 0);
   const abertoPeriodo = notasPeriodo.reduce((s, n) => s + resumoFinanceiroNota(n).saldo, 0);
   const ticketMedio = (lista || []).length ? total / (lista || []).length : 0;
