@@ -3127,6 +3127,564 @@ async function exportarPDFById(notaId) {
   gerarPDFNota(nota, itens, ordem);
 }
 
+  function gerarBackupMensalPDF() {
+  const ini = document.getElementById('rel-dt-ini').value;
+  const fim = document.getElementById('rel-dt-fim').value;
+  if (!ini || !fim) { toast('Selecione o período.', 'error'); return; }
+
+  // ── Filtra OS do período ──────────────────────────────────
+  const ordens = CACHE.ordens.filter(o => {
+    const d = toDateStr(o.data_entrada || o.criado_em);
+    return d >= ini && d <= fim;
+  });
+
+  const pagamentos = CACHE.pagamentos.filter(p => {
+    const d = toDateStr(p.data_pagamento);
+    return d >= ini && d <= fim;
+  });
+
+  const notasPeriodo = CACHE.notas.filter(n => {
+    const d = toDateStr(n.data_emissao);
+    return !n.cancelada && d >= ini && d <= fim;
+  });
+
+  // ── Métricas ──────────────────────────────────────────────
+  const totalFaturado   = ordens.reduce((s, o) => s + Number(o.valor_total || 0), 0);
+  const totalRecebido   = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
+  const totalAReceber   = notasPeriodo.reduce((s, n) => {
+    const pago = CACHE.pagamentos
+      .filter(p => p.nota_fiscal_id === n.id)
+      .reduce((sp, p) => sp + Number(p.valor || 0), 0);
+    return s + Math.max(Number(n.valor_total || 0) - pago, 0);
+  }, 0);
+  const concluidas      = ordens.filter(o => ['concluido', 'entregue'].includes(o.status)).length;
+  const ticketMedio     = ordens.length ? totalFaturado / ordens.length : 0;
+
+  // ── Período formatado ─────────────────────────────────────
+  const [anoIni, mesIni] = ini.split('-');
+  const nomesMes = ['Janeiro','Fevereiro','Marco','Abril','Maio','Junho',
+                    'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  const mesNome  = nomesMes[parseInt(mesIni) - 1] || mesIni;
+  const periodoLabel = `${mesNome} ${anoIni}`;
+  const nomeArquivo  = `backup-${anoIni}-${mesIni}.pdf`;
+
+  // ── Instância do PDF ──────────────────────────────────────
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const PW = 210, PH = 297, M = 15, RM = 195;
+
+  const NAVY  = [13, 27, 62];
+  const NAVY2 = [22, 34, 71];
+  const RED   = [192, 57, 43];
+  const RED_B = [231, 76, 60];
+  const WHITE = [255, 255, 255];
+  const GRAY  = [140, 150, 176];
+  const DARK  = [26, 34, 64];
+  const LGRAY = [232, 236, 245];
+  const BGINFO= [248, 249, 253];
+  const GOLD  = [255, 209, 106];
+
+  // ════════════════════════════════════════════════════════════
+  // PÁGINA 1 — CAPA
+  // ════════════════════════════════════════════════════════════
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, PW, PH, 'F');
+
+  // Faixa vermelha lateral
+  doc.setFillColor(...RED);
+  doc.rect(0, 0, 6, PH, 'F');
+
+  // Faixa vermelha horizontal superior
+  doc.setFillColor(...RED);
+  doc.rect(0, 72, PW, 2, 'F');
+
+  // Faixa vermelha horizontal inferior
+  doc.setFillColor(...RED);
+  doc.rect(0, PH - 30, PW, 2, 'F');
+
+  // Selo circular
+  doc.setFillColor(...NAVY2);
+  doc.circle(105, 38, 22, 'F');
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(2);
+  doc.circle(105, 38, 22, 'S');
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('A&O', 105, 35, { align: 'center' });
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY);
+  doc.text('AUTO MECANICA', 105, 42, { align: 'center' });
+
+  // Nome empresa
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(28);
+  doc.text('ALFA & OMEGA', 105, 82, { align: 'center' });
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(12);
+  doc.setTextColor(180, 195, 220);
+  doc.text('AUTO MECANICA  —  Arcoverde, Pernambuco', 105, 91, { align: 'center' });
+
+  // Label BACKUP
+  doc.setFillColor(...RED);
+  doc.roundedRect(65, 104, 80, 12, 3, 3, 'F');
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('BACKUP MENSAL — RELATORIO COMPLETO', 105, 112, { align: 'center' });
+
+  // Período
+  doc.setTextColor(...GOLD);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(36);
+  doc.text(sanitize(periodoLabel), 105, 140, { align: 'center' });
+
+  // Data de geração
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  doc.setTextColor(...GRAY);
+  const hoje = new Date();
+  doc.text(`Gerado em: ${String(hoje.getDate()).padStart(2,'0')}/${String(hoje.getMonth()+1).padStart(2,'0')}/${hoje.getFullYear()}`, 105, 152, { align: 'center' });
+
+  // Caixa de total de OS
+  doc.setFillColor(...NAVY2);
+  doc.roundedRect(65, 165, 80, 28, 4, 4, 'F');
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(1);
+  doc.roundedRect(65, 165, 80, 28, 4, 4, 'S');
+  doc.setTextColor(...GRAY);
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.text('TOTAL DE ORDENS NO PERIODO', 105, 174, { align: 'center' });
+  doc.setTextColor(...GOLD);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(32);
+  doc.text(String(ordens.length), 105, 187, { align: 'center' });
+
+  // Rodapé da capa
+  doc.setTextColor(...GRAY);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Alfa & Omega Auto Mecanica  |  Sistema de Gestao v2.0', 105, PH - 18, { align: 'center' });
+  doc.text(`Periodo: ${fmtDate(ini)} a ${fmtDate(fim)}`, 105, PH - 12, { align: 'center' });
+
+  // ════════════════════════════════════════════════════════════
+  // PÁGINA 2 — RESUMO FINANCEIRO
+  // ════════════════════════════════════════════════════════════
+  doc.addPage();
+  let y = 0;
+
+  // Cabeçalho da página
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, PW, 18, 'F');
+  doc.setFillColor(...RED);
+  doc.rect(0, 0, 6, 18, 'F');
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('RESUMO FINANCEIRO', M + 8, 12);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...GRAY);
+  doc.text(sanitize(periodoLabel), RM, 12, { align: 'right' });
+
+  y = 28;
+
+  // Função auxiliar de bloco de métrica
+  function blocoMetrica(label, valor, corValor, bx, by, bw, bh) {
+    doc.setFillColor(...BGINFO);
+    doc.roundedRect(bx, by, bw, bh, 3, 3, 'F');
+    doc.setFillColor(...NAVY);
+    doc.rect(bx, by, bw, 2, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    doc.text(sanitize(label), bx + bw / 2, by + 9, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(...corValor);
+    doc.text(sanitize(valor), bx + bw / 2, by + 22, { align: 'center' });
+  }
+
+  const bw = 84, bh = 28, gap = 7;
+  blocoMetrica('TOTAL FATURADO',  fmt(totalFaturado),  GOLD,              M,       y, bw, bh);
+  blocoMetrica('TOTAL RECEBIDO',  fmt(totalRecebido),  [26, 138, 74],     M+bw+gap, y, bw, bh);
+  y += bh + gap;
+  blocoMetrica('A RECEBER',       fmt(totalAReceber),  [184, 106, 0],     M,       y, bw, bh);
+  blocoMetrica('TICKET MEDIO',    fmt(ticketMedio),    DARK,              M+bw+gap, y, bw, bh);
+  y += bh + gap;
+
+  // Bloco largo — OS concluídas
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(M, y, bw * 2 + gap, bh, 3, 3, 'F');
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(...GRAY);
+  doc.text('OS CONCLUIDAS / ENTREGUES', 105, y + 9, { align: 'center' });
+  doc.setFontSize(18);
+  doc.setTextColor(...GOLD);
+  doc.text(`${concluidas} de ${ordens.length}`, 105, y + 22, { align: 'center' });
+  y += bh + 14;
+
+  // ════════════════════════════════════════════════════════════
+  // SEÇÃO — LISTA COMPLETA DE OS
+  // ════════════════════════════════════════════════════════════
+
+  // Cabeçalho da seção
+  doc.setFillColor(...NAVY);
+  doc.rect(0, y - 5, PW, 13, 'F');
+  doc.setFillColor(...RED);
+  doc.rect(0, y - 5, 6, 13, 'F');
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('ORDENS DE SERVICO — DETALHAMENTO COMPLETO', M + 8, y + 3);
+  y += 14;
+
+  if (ordens.length === 0) {
+    doc.setTextColor(...GRAY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.text('Nenhuma ordem de servico no periodo selecionado.', 105, y + 8, { align: 'center' });
+    y += 20;
+  }
+
+  ordens.forEach((os, osIdx) => {
+    // Verifica espaço — cada bloco mínimo ocupa ~40mm
+    if (y > 245) { doc.addPage(); y = 22; }
+
+    const cli = os.clientes || {};
+    const itensOS = (os.ordem_servico_itens || []);
+    const brutoOS = itensOS.reduce((s, i) => s + Number(i.quantidade) * Number(i.preco_unitario), 0);
+    const descOS  = Number(os.desconto_total || 0);
+
+    // Fundo alternado do bloco
+    const bgOS = osIdx % 2 === 0 ? BGINFO : WHITE;
+    // Altura estimada: cabeçalho(14) + cliente(18) + veiculo(10) + itens(8*n) + total(10) + margem(6)
+    const alturaEstimada = 14 + 18 + 10 + Math.max(itensOS.length, 1) * 8 + 16;
+    if (y + alturaEstimada > 270) { doc.addPage(); y = 22; }
+
+    doc.setFillColor(...bgOS);
+    doc.rect(M, y, RM - M, alturaEstimada, 'F');
+
+    // Linha vermelha esquerda no bloco
+    doc.setFillColor(...RED);
+    doc.rect(M, y, 2, alturaEstimada, 'F');
+
+    // Número da OS + Status
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.text(sanitize(os.numero || '—'), M + 5, y + 7);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setTextColor(...GRAY);
+    const statusTexto = { em_andamento:'Em andamento', aguardando_peca:'Aguard. peca',
+      concluido:'Concluido', entregue:'Entregue', cancelado:'Cancelado' };
+    doc.text(sanitize(statusTexto[os.status] || os.status || '—'), M + 42, y + 7);
+    doc.text(`Data: ${fmtDate(os.data_entrada)}`, RM - 2, y + 7, { align: 'right' });
+
+    // Divisória interna
+    doc.setDrawColor(...LGRAY);
+    doc.setLineWidth(0.3);
+    doc.line(M + 2, y + 10, RM, y + 10);
+
+    y += 13;
+
+    // Dados do cliente
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...DARK);
+    doc.text(sanitize(cli.nome || '—').substring(0, 40), M + 5, y + 5);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    const cliLinha2 = [cli.cpf_cnpj ? `CPF/CNPJ: ${cli.cpf_cnpj}` : '', cli.telefone ? `Tel: ${cli.telefone}` : ''].filter(Boolean).join('   ');
+    if (cliLinha2) doc.text(sanitize(cliLinha2), M + 5, y + 11);
+
+    // Dados do veículo (coluna direita)
+    if (os.veiculo_modelo || os.veiculo_placa) {
+      const veiculo = [os.veiculo_marca, os.veiculo_modelo, os.veiculo_ano ? String(os.veiculo_ano) : ''].filter(Boolean).join(' ');
+      const placaKM = [os.veiculo_placa, os.veiculo_km ? `${os.veiculo_km} km` : ''].filter(Boolean).join(' | ');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...NAVY);
+      doc.text(sanitize(veiculo).substring(0, 30), RM - 2, y + 5, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...GRAY);
+      doc.text(sanitize(placaKM), RM - 2, y + 11, { align: 'right' });
+    }
+
+    y += 16;
+
+    // Itens da OS
+    if (itensOS.length > 0) {
+      itensOS.forEach(item => {
+        if (y > 260) { doc.addPage(); y = 22; }
+        const prod = CACHE.produtos.find(p => p.id === item.produto_servico_id);
+        const nomeProd = sanitize(prod?.nome || '—').substring(0, 42);
+        const subtotal = Number(item.quantidade) * Number(item.preco_unitario);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(...DARK);
+        doc.text(`• ${nomeProd}`, M + 5, y);
+        doc.text(`${Number(item.quantidade)} x ${sanitize(fmt(item.preco_unitario))}`, 148, y, { align: 'right' });
+        doc.setFont('helvetica', 'bold');
+        doc.text(sanitize(fmt(subtotal)), RM - 2, y, { align: 'right' });
+        doc.setFont('helvetica', 'normal');
+        y += 7;
+      });
+    } else {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GRAY);
+      doc.text('Sem itens registrados.', M + 5, y);
+      y += 7;
+    }
+
+    // Desconto e total
+    if (y > 260) { doc.addPage(); y = 22; }
+    doc.setDrawColor(...LGRAY);
+    doc.setLineWidth(0.3);
+    doc.line(M + 2, y, RM, y);
+    y += 4;
+
+    if (descOS > 0) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...GRAY);
+      doc.text(`Subtotal: ${sanitize(fmt(brutoOS))}`, RM - 50, y);
+      doc.setTextColor(192, 57, 43);
+      doc.text(`Desconto: − ${sanitize(fmt(descOS))}`, RM - 28, y, { align: 'right' });
+      y += 6;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.text('TOTAL:', RM - 35, y);
+    doc.setTextColor(...RED_B);
+    doc.text(sanitize(fmt(os.valor_total)), RM - 2, y, { align: 'right' });
+    y += 10;
+  });
+
+  // Guarda referências para o sub-passo 3
+  gerarBackupMensalPDF._continuar({ doc, y, pagamentos, notasPeriodo, ordens,
+    periodoLabel, ini, fim, nomeArquivo, M, RM, PW,
+    NAVY, NAVY2, RED, RED_B, WHITE, GRAY, DARK, LGRAY, BGINFO, GOLD });
+}
+
+// Receptor temporário — será substituído no sub-passo 3
+gerarBackupMensalPDF._continuar = function({
+  doc, y, pagamentos, notasPeriodo, ordens,
+  periodoLabel, ini, fim, nomeArquivo, M, RM, PW,
+  NAVY, NAVY2, RED, RED_B, WHITE, GRAY, DARK, LGRAY, BGINFO, GOLD
+}) {
+
+  // Função auxiliar de cabeçalho de seção reutilizável
+  function cabecalhoSecao(titulo) {
+    if (y > 245) { doc.addPage(); y = 22; }
+    doc.setFillColor(...NAVY);
+    doc.rect(0, y - 5, PW, 13, 'F');
+    doc.setFillColor(...RED);
+    doc.rect(0, y - 5, 6, 13, 'F');
+    doc.setTextColor(...WHITE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text(sanitize(titulo), M + 8, y + 3);
+    y += 14;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // SEÇÃO — PAGAMENTOS RECEBIDOS
+  // ════════════════════════════════════════════════════════════
+  y += 6;
+  cabecalhoSecao('PAGAMENTOS RECEBIDOS NO PERIODO');
+
+  if (pagamentos.length === 0) {
+    if (y > 260) { doc.addPage(); y = 22; }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...GRAY);
+    doc.text('Nenhum pagamento registrado no periodo.', 105, y + 6, { align: 'center' });
+    y += 16;
+  } else {
+    // Cabeçalho da tabela
+    if (y > 260) { doc.addPage(); y = 22; }
+    doc.setFillColor(...BGINFO);
+    doc.rect(M, y, RM - M, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('DATA',       M + 3,  y + 6);
+    doc.text('FORMA',      M + 28, y + 6);
+    doc.text('NF',         M + 72, y + 6);
+    doc.text('VALOR',      RM - 2, y + 6, { align: 'right' });
+    y += 9;
+
+    const metodosLabel = {
+      dinheiro: 'Dinheiro', pix: 'Pix',
+      cartao_credito: 'Cartao credito', cartao_debito: 'Cartao debito',
+      transferencia: 'Transferencia', boleto: 'Boleto', outro: 'Outro',
+    };
+
+    pagamentos.forEach((pag, idx) => {
+      if (y > 265) { doc.addPage(); y = 22; }
+
+      if (idx % 2 === 0) {
+        doc.setFillColor(242, 244, 250);
+        doc.rect(M, y - 3, RM - M, 8, 'F');
+      }
+
+      // Busca NF vinculada
+      const nota = CACHE.notas.find(n => n.id === pag.nota_fiscal_id);
+      const numNF = nota?.numero_nf || '—';
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...DARK);
+      doc.text(sanitize(fmtDate(pag.data_pagamento)), M + 3, y + 2);
+      doc.text(sanitize(metodosLabel[pag.metodo] || pag.metodo || '—'), M + 28, y + 2);
+      doc.text(sanitize(numNF), M + 72, y + 2);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...NAVY);
+      doc.text(sanitize(fmt(pag.valor)), RM - 2, y + 2, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+
+      y += 8;
+    });
+
+    // Total de pagamentos
+    if (y > 260) { doc.addPage(); y = 22; }
+    const totalPag = pagamentos.reduce((s, p) => s + Number(p.valor || 0), 0);
+    doc.setDrawColor(...NAVY);
+    doc.setLineWidth(0.5);
+    doc.line(M, y, RM, y);
+    y += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.setTextColor(...NAVY);
+    doc.text('TOTAL RECEBIDO NO PERIODO:', M + 3, y);
+    doc.setTextColor(...RED_B);
+    doc.text(sanitize(fmt(totalPag)), RM - 2, y, { align: 'right' });
+    y += 12;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // SEÇÃO — RANKING DE PRODUTOS / SERVIÇOS
+  // ════════════════════════════════════════════════════════════
+  y += 4;
+  cabecalhoSecao('PRODUTOS / SERVICOS MAIS UTILIZADOS NO PERIODO');
+
+  // Conta a utilização de cada produto somando quantidades de todos os itens das OS do período
+  const contagem = {};
+  ordens.forEach(os => {
+    (os.ordem_servico_itens || []).forEach(item => {
+      const id = item.produto_servico_id;
+      if (!id) return;
+      contagem[id] = (contagem[id] || 0) + Number(item.quantidade || 1);
+    });
+  });
+
+  const ranking = Object.entries(contagem)
+    .map(([id, qtd]) => {
+      const prod = CACHE.produtos.find(p => p.id === id);
+      return { nome: prod?.nome || 'Produto removido', qtd };
+    })
+    .sort((a, b) => b.qtd - a.qtd)
+    .slice(0, 20); // limita a 20 itens para não estourar a página
+
+  if (ranking.length === 0) {
+    if (y > 260) { doc.addPage(); y = 22; }
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(...GRAY);
+    doc.text('Nenhum produto ou servico utilizado no periodo.', 105, y + 6, { align: 'center' });
+    y += 16;
+  } else {
+    // Cabeçalho da tabela
+    if (y > 260) { doc.addPage(); y = 22; }
+    doc.setFillColor(...BGINFO);
+    doc.rect(M, y, RM - M, 9, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('POS.', M + 3,  y + 6);
+    doc.text('PRODUTO / SERVICO', M + 18, y + 6);
+    doc.text('QTD. UTILIZADA', RM - 2, y + 6, { align: 'right' });
+    y += 9;
+
+    const barMaxW = 60; // largura máxima da barra de progresso
+    const maxQtd  = ranking[0]?.qtd || 1;
+
+    ranking.forEach((item, idx) => {
+      if (y > 265) { doc.addPage(); y = 22; }
+
+      // Fundo alternado
+      if (idx % 2 === 0) {
+        doc.setFillColor(242, 244, 250);
+        doc.rect(M, y - 3, RM - M, 10, 'F');
+      }
+
+      // Posição em destaque para top 3
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      const corPos = idx === 0 ? GOLD : idx === 1 ? [180, 180, 180] : idx === 2 ? [180, 120, 60] : GRAY;
+      doc.setTextColor(...corPos);
+      doc.text(String(idx + 1).padStart(2, '0'), M + 3, y + 3);
+
+      // Nome do produto
+      doc.setTextColor(...DARK);
+      doc.setFont('helvetica', idx < 3 ? 'bold' : 'normal');
+      doc.text(sanitize(item.nome).substring(0, 48), M + 18, y + 3);
+
+      // Barra de progresso
+      const barW = (item.qtd / maxQtd) * barMaxW;
+      doc.setFillColor(...LGRAY);
+      doc.rect(M + 18, y + 4.5, barMaxW, 2, 'F');
+      doc.setFillColor(...(idx === 0 ? RED : NAVY));
+      doc.rect(M + 18, y + 4.5, barW, 2, 'F');
+
+      // Quantidade
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...NAVY);
+      doc.text(String(Number(item.qtd.toFixed(3)).toLocaleString('pt-BR')), RM - 2, y + 3, { align: 'right' });
+
+      y += 10;
+    });
+    y += 4;
+  }
+
+  // ════════════════════════════════════════════════════════════
+  // RODAPÉ EM TODAS AS PÁGINAS
+  // ════════════════════════════════════════════════════════════
+  const totalPaginas = doc.getNumberOfPages();
+  for (let pg = 1; pg <= totalPaginas; pg++) {
+    doc.setPage(pg);
+    if (pg === 1) continue; // capa não leva rodapé de página
+
+    doc.setDrawColor(...RED);
+    doc.setLineWidth(0.5);
+    doc.line(M, 287, RM, 287);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    doc.text(
+      `Alfa & Omega Auto Mecanica  |  Backup ${sanitize(periodoLabel)}  |  Periodo: ${fmtDate(ini)} a ${fmtDate(fim)}`,
+      M, 292
+    );
+    doc.text(`Pag. ${pg} / ${totalPaginas}`, RM, 292, { align: 'right' });
+  }
+
+  // ── SALVAR ───────────────────────────────────────────────
+  doc.save(nomeArquivo);
+  toast(`Backup gerado: ${nomeArquivo}`);
+};
+
   function iniciarBackupMensalPDF() {
   const hoje = new Date();
   const iniEl = document.getElementById('rel-dt-ini');
