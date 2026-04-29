@@ -754,12 +754,17 @@ async function iniciarApp(user) {
 // Flag para evitar disparo duplo do onAuthStateChange + doLogin
 let _appIniciado = false;
 sb.auth.onAuthStateChange(async (event, session) => {
-  if (event === 'SIGNED_IN' && session && !_appIniciado) {
+  // INITIAL_SESSION é disparado quando a página carrega e já existe sessão salva
+  // SIGNED_IN é disparado após um login bem-sucedido
+  if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !_appIniciado) {
     _appIniciado = true;
     await iniciarApp(session.user);
   }
   if (event === 'SIGNED_OUT') {
     _appIniciado = false;
+    // Garante que a tela de login apareça
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('auth-screen').style.display = 'flex';
   }
 });
 
@@ -792,11 +797,18 @@ async function carregarTudo() {
 
   // Avisa se algum módulo veio vazio por provável erro de RLS
   const vazios = [
-    clientes.length === 0 && 'Clientes',
-    produtos.length === 0 && 'Produtos',
-    ordens.length   === 0 && 'Ordens',
-  ].filter(Boolean);
-  if (vazios.length === 3) toast('Verifique as políticas RLS no Supabase.', 'error');
+      clientes.length === 0 && 'Clientes',
+      produtos.length === 0 && 'Produtos',
+      ordens.length   === 0 && 'Ordens',
+    ].filter(Boolean);
+    // Avisa para qualquer tabela vazia, não só quando todas estão vazias
+    if (vazios.length > 0) {
+      console.warn('[RLS] Tabelas sem dados:', vazios.join(', '));
+      // Só exibe toast se TODAS estiverem vazias (provável bloqueio de RLS)
+      if (vazios.length === 3) {
+        toast('Sem acesso aos dados. Verifique as políticas RLS no Supabase.', 'error');
+      }
+    }
 
   hideLoading();
 }
