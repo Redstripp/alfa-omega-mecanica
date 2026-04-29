@@ -1483,22 +1483,27 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
 }
 
 async function excluirOrdem(id) {
-  if (!confirm('Excluir esta ordem de serviço? Itens e notas fiscais vinculadas também serão removidos.')) return;
+  if (!confirm('Excluir esta ordem de serviço? Itens, movimentações de estoque e notas fiscais vinculadas também serão removidos.')) return;
   showLoading();
   try {
     // 1º — Remove a nota fiscal vinculada (se houver)
     const { error: errNota } = await sb.from('notas_fiscais').delete().eq('ordem_servico_id', id);
     if (errNota) { toast('Erro ao remover nota fiscal: ' + errNota.message, 'error'); return; }
 
-    // 2º — Remove os itens da OS
+    // 2º — Remove as movimentações de estoque vinculadas à OS
+    const { error: errMov } = await sb.from('movimentacoes_estoque').delete().eq('ordem_servico_id', id);
+    if (errMov) { toast('Erro ao remover movimentações de estoque: ' + errMov.message, 'error'); return; }
+
+    // 3º — Remove os itens da OS
     const { error: errItens } = await sb.from('ordem_servico_itens').delete().eq('ordem_servico_id', id);
     if (errItens) { toast('Erro ao remover itens da OS: ' + errItens.message, 'error'); return; }
 
-    // 3º — Remove a OS em si
+    // 4º — Remove a OS em si
     const { error } = await sb.from('ordens_servico').delete().eq('id', id);
     if (error) { toast('Erro ao excluir OS: ' + error.message, 'error'); return; }
 
     toast('Ordem removida com sucesso.');
+    await recarregarProdutos();
     await recarregarOrdens();
     await recarregarNotas();
     renderOrdens();
