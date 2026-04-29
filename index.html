@@ -1160,19 +1160,7 @@ function abrirModalOrdem(tipo) {
   document.getElementById('modal-ordem').classList.add('open');
 }
 
-function abrirModalOrcamento() {
-  abrirModalOrdem('orcamento');
-
-  // Troca as opções do select para os status válidos de orçamento
-  const sel = document.getElementById('ord-status');
-  sel.innerHTML = `
-    <option value="pendente">Pendente</option>
-    <option value="aprovado">Aprovado</option>
-    <option value="recusado">Recusado</option>
-    <option value="expirado">Expirado</option>
-  `;
-  sel.value = 'pendente';
-}
+function abrirModalOrcamento() { abrirModalOrdem('orcamento'); }
 
 function editarOrdem(id) {
   const o = CACHE.ordens.find(x => x.id === id);
@@ -1217,14 +1205,6 @@ function editarOrcamento(id) {
   sel.value = o.cliente_id;
   document.getElementById('ord-data').value     = o.criado_em?.split('T')[0] || '';
   document.getElementById('ord-status').value   = o.status;
-  const sel2 = document.getElementById('ord-status');
-  sel.innerHTML = `
-    <option value="pendente">Pendente</option>
-    <option value="aprovado">Aprovado</option>
-    <option value="recusado">Recusado</option>
-    <option value="expirado">Expirado</option>
-  `;
-  sel.value = o.status;
   document.getElementById('ord-desc').value     = o.descricao || '';
   document.getElementById('ord-previsao').value = o.validade || '';
   itemRows = (o.orcamento_itens || []).map(i => ({
