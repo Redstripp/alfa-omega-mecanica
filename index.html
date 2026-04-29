@@ -1556,9 +1556,11 @@ function abrirModalOrdem(tipo) {
 
 function abrirModalOrcamento() { abrirModalOrdem('orcamento'); }
 
-function editarOrdem(id) {
+async function editarOrdem(id) {
   const o = CACHE.ordens.find(x => x.id === id);
   if (!o) return;
+
+  // Preenche os campos do modal imediatamente
   document.getElementById('ordem-id').value    = o.id;
   document.getElementById('ordem-tipo').value  = 'ordem';
   document.getElementById('modal-ordem-title').textContent = 'Editar Ordem de Serviço';
@@ -1567,25 +1569,52 @@ function editarOrdem(id) {
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
   sel.value = o.cliente_id;
-  document.getElementById('ord-data').value    = o.data_entrada;
+  document.getElementById('ord-data').value     = o.data_entrada;
   preencherStatus('ordem', o.status || 'em_andamento');
-  document.getElementById('ord-desc').value    = o.descricao || '';
+  document.getElementById('ord-desc').value     = o.descricao || '';
   document.getElementById('ord-previsao').value = o.data_previsao || '';
   document.getElementById('ord-veiculo-marca').value  = o.veiculo_marca || '';
   document.getElementById('ord-veiculo-modelo').value = o.veiculo_modelo || '';
   document.getElementById('ord-veiculo-ano').value    = o.veiculo_ano || '';
   document.getElementById('ord-veiculo-placa').value  = o.veiculo_placa || '';
   document.getElementById('ord-veiculo-km').value     = o.veiculo_km || '';
-  itemRows = (o.ordem_servico_itens || []).map(i => ({
-    id: i.id,
-    produto_servico_id: i.produto_servico_id,
-    quantidade: Number(i.quantidade),
-    preco_unitario: Number(i.preco_unitario)
-  }));
-  if (!itemRows.length) itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
+
+  // Mostra o modal antes de buscar os itens (UX melhor)
+  itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
   renderItemRows();
   calcTotal();
   document.getElementById('modal-ordem').classList.add('open');
+
+  // Busca os itens DIRETAMENTE do banco (não depende do cache)
+  showLoading();
+  try {
+    const { data: itens, error } = await sb
+      .from('ordem_servico_itens')
+      .select('*')
+      .eq('ordem_servico_id', id);
+
+    if (error) {
+      toast('Erro ao carregar itens da OS: ' + error.message, 'error');
+      return;
+    }
+
+    if (itens && itens.length > 0) {
+      itemRows = itens.map(i => ({
+        id: i.id,
+        produto_servico_id: i.produto_servico_id,
+        quantidade: Number(i.quantidade),
+        preco_unitario: Number(i.preco_unitario)
+      }));
+    } else {
+      // Sem itens no banco — mantém a linha vazia para o usuário adicionar
+      itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
+    }
+
+    renderItemRows();
+    calcTotal();
+  } finally {
+    hideLoading();
+  }
 }
 
 function editarOrcamento(id) {
