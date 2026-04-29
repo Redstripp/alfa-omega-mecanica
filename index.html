@@ -1962,11 +1962,11 @@ async function excluirOrcamento(id) {
 async function converterOrcamento(id) {
   const orc = CACHE.orcamentos.find(o => o.id === id);
   if (!orc) return;
-  if (!confirm('Converter este orçamento em Ordem de Serviço?')) return;
   if (orc.status === 'aprovado') {
     toast('Este orçamento já foi convertido em OS.', 'error');
     return;
   }
+  if (!confirm('Converter este orçamento em Ordem de Serviço?')) return;
   showLoading();
 
   const { data: os, error } = await sb.from('ordens_servico').insert({
