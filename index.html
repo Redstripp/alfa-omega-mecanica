@@ -455,7 +455,16 @@ tbody tr:last-child { border-bottom: none; }
           <div class="section-title mb-16" style="font-size:17px">Filtros</div>
           <div class="form-group mb-16"><label>Data Inicial</label><input type="date" id="rel-dt-ini"></div>
           <div class="form-group mb-16"><label>Data Final</label><input type="date" id="rel-dt-fim"></div>
-          <button class="btn btn-primary" onclick="gerarRelatorio()">Gerar Relatório</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+            <button class="btn btn-primary" onclick="gerarRelatorio()">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+              Gerar Relatório
+            </button>
+            <button class="btn btn-red" onclick="iniciarBackupMensalPDF()">
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+              Backup Mensal PDF
+            </button>
+          </div>
         </div>
         <div class="card" id="rel-resumo">
           <div class="section-title mb-16" style="font-size:17px">Resumo do Período</div>
@@ -599,7 +608,34 @@ tbody tr:last-child { border-bottom: none; }
         <div id="order-items-rows"></div>
       </div>
       <button class="btn btn-outline btn-sm" onclick="addItemRow()">+ Adicionar Item</button>
-      <div class="total-display" style="margin-top:16px">
+
+      <!-- ── DESCONTO ── -->
+      <div style="margin-top:14px; background:var(--off-white); border:1px solid var(--light-gray); border-radius:var(--radius-sm); padding:12px 16px; display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+        <span style="font-size:13px; font-weight:600; color:var(--text-gray); text-transform:uppercase; letter-spacing:.5px; white-space:nowrap;">Desconto</span>
+        <!-- Toggle R$ / % -->
+        <div style="display:flex; border:1px solid var(--mid-gray); border-radius:var(--radius-sm); overflow:hidden; flex-shrink:0;">
+          <button type="button" id="desc-btn-reais"
+            onclick="setModoDesconto('reais')"
+            style="padding:5px 14px; font-size:13px; font-weight:600; font-family:'Barlow',sans-serif; border:none; cursor:pointer; background:var(--blue-mid); color:var(--white); transition:background .15s;">
+            R$
+          </button>
+          <button type="button" id="desc-btn-pct"
+            onclick="setModoDesconto('pct')"
+            style="padding:5px 14px; font-size:13px; font-weight:600; font-family:'Barlow',sans-serif; border:none; cursor:pointer; background:var(--white); color:var(--text-mid); transition:background .15s;">
+            %
+          </button>
+        </div>
+        <!-- Input do valor -->
+        <input type="number" id="ord-desconto-valor" min="0" step="0.01" value="0"
+          placeholder="0"
+          oninput="calcTotal()"
+          style="width:110px; padding:6px 10px; border:1px solid var(--mid-gray); border-radius:var(--radius-sm); font-family:'Barlow',sans-serif; font-size:14px; color:var(--text-dark);">
+        <!-- Desconto calculado em reais (exibição) -->
+        <span id="ord-desconto-calculado" style="font-size:13px; color:var(--danger); font-weight:600; display:none;">− R$ 0,00</span>
+      </div>
+      <!-- ── FIM DESCONTO ── -->
+
+      <div class="total-display" style="margin-top:12px">
         <span class="label" id="ord-total-label">Total da Ordem</span>
         <span class="value" id="ord-total">R$ 0,00</span>
       </div>
@@ -758,6 +794,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [], pagamentos: [], movimentacoes: [] };
 let currentUser = null;
 let itemRows = [];
+let modoDesconto = 'reais'; // 'reais' ou 'pct'
 let documentoAtual = { tipo: null, id: null };
 const DATA_LOAD_TIMEOUT_MS = 15000;
 
@@ -1571,6 +1608,12 @@ function abrirModalOrdem(tipo) {
   document.getElementById('ord-veiculo-km').value  = '';
   document.getElementById('campos-veiculo').style.display = tipo === 'orcamento' ? 'none' : '';
 
+  // Reset do campo de desconto
+  modoDesconto = 'reais';
+  const inputDescReset = document.getElementById('ord-desconto-valor');
+  if (inputDescReset) inputDescReset.value = 0;
+  setModoDesconto('reais');
+
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
   itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
@@ -1630,12 +1673,16 @@ async function editarOrdem(id) {
       : [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
 
     renderItemRows();
+    // Restaura desconto salvo
+    modoDesconto = 'reais';
+    const inputDescEdit = document.getElementById('ord-desconto-valor');
+    if (inputDescEdit) inputDescEdit.value = Number(o.desconto_total || 0).toFixed(2);
+    setModoDesconto('reais');
     calcTotal();
   } finally {
     hideLoading();
   }
 }
-
 function editarOrcamento(id) {
   const o = CACHE.orcamentos.find(x => x.id === id);
   if (!o) return;
@@ -1659,6 +1706,11 @@ function editarOrcamento(id) {
   }));
   if (!itemRows.length) itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
   renderItemRows();
+  // Restaura desconto salvo
+  modoDesconto = 'reais';
+  const inputDescOrc = document.getElementById('ord-desconto-valor');
+  if (inputDescOrc) inputDescOrc.value = Number(o.desconto_total || 0).toFixed(2);
+  setModoDesconto('reais');
   calcTotal();
   document.getElementById('modal-ordem').classList.add('open');
 }
@@ -1688,9 +1740,70 @@ function itemChange(idx, field, val) {
   calcTotal();
 }
 function calcTotal() {
-  const total = itemRows.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
-  document.getElementById('ord-total').textContent = fmt(total);
+  const bruto = itemRows.reduce((s, i) => s + (i.quantidade * i.preco_unitario), 0);
+
+  const inputDesc = document.getElementById('ord-desconto-valor');
+  const valorDesc = parseFloat(inputDesc?.value || 0) || 0;
+
+  // Calcula desconto em reais conforme o modo ativo
+  let descontoReais = 0;
+  if (modoDesconto === 'pct') {
+    descontoReais = bruto * (Math.min(valorDesc, 100) / 100);
+  } else {
+    descontoReais = Math.min(valorDesc, bruto);
+  }
+  descontoReais = Math.max(descontoReais, 0);
+
+  const liquido = bruto - descontoReais;
+
+  // Exibe o desconto calculado em reais (só quando > 0)
+  const spanCalc = document.getElementById('ord-desconto-calculado');
+  if (spanCalc) {
+    if (descontoReais > 0) {
+      spanCalc.textContent = `− ${fmt(descontoReais)}`;
+      spanCalc.style.display = 'inline';
+    } else {
+      spanCalc.style.display = 'none';
+    }
+  }
+
+  // Atualiza o bloco de total: mostra bruto + desconto + líquido quando há desconto
+  const elTotal = document.getElementById('ord-total');
+  const elLabel = document.getElementById('ord-total-label');
+  if (descontoReais > 0) {
+    elTotal.innerHTML = `
+      <span style="font-size:13px;opacity:.65;text-decoration:line-through;font-weight:400">${fmt(bruto)}</span>
+      <span style="font-size:11px;color:#ff9f7a;margin:0 4px;">−${fmt(descontoReais)}</span>
+      <span>${fmt(liquido)}</span>`;
+  } else {
+    elTotal.textContent = fmt(bruto);
+  }
 }
+
+ function setModoDesconto(modo) {
+  modoDesconto = modo;
+
+  const btnReais = document.getElementById('desc-btn-reais');
+  const btnPct   = document.getElementById('desc-btn-pct');
+  if (!btnReais || !btnPct) return;
+
+  if (modo === 'reais') {
+    btnReais.style.background = 'var(--blue-mid)';
+    btnReais.style.color      = 'var(--white)';
+    btnPct.style.background   = 'var(--white)';
+    btnPct.style.color        = 'var(--text-mid)';
+  } else {
+    btnPct.style.background   = 'var(--blue-mid)';
+    btnPct.style.color        = 'var(--white)';
+    btnReais.style.background = 'var(--white)';
+    btnReais.style.color      = 'var(--text-mid)';
+  }
+
+  // Limpa o input e recalcula ao trocar de modo
+  const inputDesc = document.getElementById('ord-desconto-valor');
+  if (inputDesc) inputDesc.value = 0;
+  calcTotal();
+} 
 
 async function salvarOrdem() {
   const clienteId = document.getElementById('ord-cliente').value;
@@ -1699,8 +1812,14 @@ async function salvarOrdem() {
   const itensValidos = itemRows.filter(i => i.produto_servico_id);
   if (!itensValidos.length) { toast('Adicione ao menos um item.', 'error'); return; }
 
-  const valorTotal = itensValidos.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
-  const idEdit     = document.getElementById('ordem-id').value;
+  const valorBruto  = itensValidos.reduce((s, i) => s + i.quantidade * i.preco_unitario, 0);
+  const inputDesc   = document.getElementById('ord-desconto-valor');
+  const valorDescInput = parseFloat(inputDesc?.value || 0) || 0;
+  const descontoReais  = modoDesconto === 'pct'
+    ? valorBruto * (Math.min(valorDescInput, 100) / 100)
+    : Math.min(valorDescInput, valorBruto);
+  const valorLiquido = Math.max(valorBruto - descontoReais, 0);
+  const idEdit       = document.getElementById('ordem-id').value;
 
   const btn = document.querySelector('#modal-ordem .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
@@ -1714,7 +1833,8 @@ async function salvarOrdem() {
   descricao:   document.getElementById('ord-desc').value.trim() || null,
   status:      statusOrcamentoSeguro(document.getElementById('ord-status').value),
   validade:    document.getElementById('ord-previsao').value || null,
-  valor_total: valorTotal,
+  valor_total:     valorLiquido,
+  desconto_total:  descontoReais,
 };
 if (!idEdit) {
   payload.numero = gerarNumero('ORC', CACHE.orcamentos);
@@ -1759,7 +1879,8 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
       veiculo_ano:    parseInt(document.getElementById('ord-veiculo-ano').value) || null,
       veiculo_placa:  document.getElementById('ord-veiculo-placa').value.trim().toUpperCase() || null,
       veiculo_km:     parseInt(document.getElementById('ord-veiculo-km').value) || null,
-      valor_total:    valorTotal,
+      valor_total:    valorLiquido,
+      desconto_total: descontoReais,
       numero:         idEdit ? undefined : gerarNumero('OS', CACHE.ordens),
     };
     if (payload.numero === undefined) delete payload.numero;
@@ -1797,7 +1918,7 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
 
     if (idEdit) {
       const { data: notasAtualizadas, error: errNotaOS } = await sb.from('notas_fiscais')
-        .update({ valor_subtotal: valorTotal, valor_total: valorTotal, valor_desconto: 0 })
+        .update({ valor_subtotal: valorBruto, valor_total: valorLiquido, valor_desconto: descontoReais })
         .eq('ordem_servico_id', idEdit)
         .select('id');
       if (errNotaOS) {
@@ -1973,6 +2094,12 @@ function mostrarOrcamento(orc) {
         </table>
         <div class="invoice-total">
           <div class="invoice-total-box">
+            ${Number(orc.desconto_total || 0) > 0 ? `
+            <div class="total-label" style="opacity:.6">SUBTOTAL</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;text-decoration:line-through;opacity:.55;margin-bottom:4px">${fmt((orc.orcamento_itens || []).reduce((s,i) => s + Number(i.quantidade)*Number(i.preco_unitario), 0))}</div>
+            <div class="total-label" style="color:#ff9f7a">DESCONTO</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:#ff9f7a;margin-bottom:6px">− ${fmt(orc.desconto_total)}</div>
+            ` : ''}
             <div class="total-label">TOTAL DO ORÇAMENTO</div>
             <div class="total-value">${fmt(orc.valor_total)}</div>
           </div>
@@ -2301,6 +2428,12 @@ function mostrarNota(nota, ordem) {
         </table>
         <div class="invoice-total">
           <div class="invoice-total-box">
+            ${Number(nota.valor_desconto || 0) > 0 ? `
+            <div class="total-label" style="opacity:.6">SUBTOTAL</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:600;text-decoration:line-through;opacity:.55;margin-bottom:4px">${fmt(nota.valor_subtotal || nota.valor_total)}</div>
+            <div class="total-label" style="color:#ff9f7a">DESCONTO</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;color:#ff9f7a;margin-bottom:6px">− ${fmt(nota.valor_desconto)}</div>
+            ` : ''}
             <div class="total-label">VALOR TOTAL</div>
             <div class="total-value">${fmt(nota.valor_total)}</div>
           </div>
@@ -2558,36 +2691,74 @@ function gerarPDFNota(nota, itens, ordem) {
   // CAIXA DO TOTAL
   // ══════════════════════════════════════════════════════════
   y += 8;
+  if (y > 250) { doc.addPage(); y = 20; }
 
-  // Sombra/fundo decorativo
+  const descNota = Number(nota.valor_desconto || 0);
+  const boxH_total = descNota > 0 ? 34 : 22;
+
+  // Sombra decorativa
   doc.setFillColor(220, 225, 240);
-  doc.roundedRect(132, y + 1, 65, 22, 3, 3, 'F');
+  doc.roundedRect(132, y + 1, 65, boxH_total, 3, 3, 'F');
 
   // Caixa principal
   doc.setFillColor(...NAVY);
-  doc.roundedRect(131, y, 65, 22, 3, 3, 'F');
+  doc.roundedRect(131, y, 65, boxH_total, 3, 3, 'F');
 
-  // Label
-  doc.setTextColor(...GRAY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text('VALOR TOTAL', 163.5, y + 7, { align: 'center' });
+  if (descNota > 0) {
+    // Subtotal riscado
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    doc.text('SUBTOTAL', 163.5, y + 6, { align: 'center' });
+    const brutoNota = Number(nota.valor_subtotal || (nota.valor_total + descNota));
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9);
+    doc.setTextColor(160, 170, 200);
+    doc.text(sanitize(fmt(brutoNota)), 163.5, y + 12, { align: 'center' });
+    // Linha de tachado
+    doc.setDrawColor(160, 170, 200);
+    doc.setLineWidth(0.4);
+    const tw = doc.getTextWidth(sanitize(fmt(brutoNota)));
+    doc.line(163.5 - tw/2, y + 11, 163.5 + tw/2, y + 11);
 
-  // Linha divisória interna
-  doc.setDrawColor(30, 50, 90);
-  doc.setLineWidth(0.4);
-  doc.line(135, y + 9, 193, y + 9);
+    // Desconto
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(255, 159, 122);
+    doc.text(`DESCONTO: − ${sanitize(fmt(descNota))}`, 163.5, y + 19, { align: 'center' });
 
-  // Valor
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(...RED_B);
-  doc.text(sanitize(fmt(nota.valor_total)), RM - 1, y + 18, { align: 'right' });
+    // Divisória
+    doc.setDrawColor(30, 50, 90);
+    doc.setLineWidth(0.4);
+    doc.line(135, y + 21, 193, y + 21);
+
+    // Total líquido
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('VALOR TOTAL', 163.5, y + 26, { align: 'center' });
+    doc.setFontSize(13);
+    doc.setTextColor(...RED_B);
+    doc.text(sanitize(fmt(nota.valor_total)), RM - 1, y + 33, { align: 'right' });
+  } else {
+    // Sem desconto — layout original
+    doc.setTextColor(...GRAY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text('VALOR TOTAL', 163.5, y + 7, { align: 'center' });
+    doc.setDrawColor(30, 50, 90);
+    doc.setLineWidth(0.4);
+    doc.line(135, y + 9, 193, y + 9);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(...RED_B);
+    doc.text(sanitize(fmt(nota.valor_total)), RM - 1, y + 18, { align: 'right' });
+  }
 
   // ══════════════════════════════════════════════════════════
   // RODAPÉ
   // ══════════════════════════════════════════════════════════
-  y += 32;
+  y += boxH_total + 10;
 
   // Linha vermelha
   doc.setDrawColor(...RED);
@@ -2768,19 +2939,59 @@ function gerarPDFOrcamento(orc, itens) {
   }
 
   y += 8;
-  doc.setFillColor(220, 225, 240);
-  doc.roundedRect(132, y + 1, 65, 22, 3, 3, 'F');
-  doc.setFillColor(...NAVY);
-  doc.roundedRect(131, y, 65, 22, 3, 3, 'F');
-  doc.setTextColor(...GRAY);
-  doc.setFontSize(7.5);
-  doc.text('TOTAL DO ORCAMENTO', 163.5, y + 7, { align: 'center' });
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(...RED_B);
-  doc.text(sanitize(fmt(orc.valor_total)), RM - 1, y + 18, { align: 'right' });
+  if (y > 250) { doc.addPage(); y = 20; }
 
-  y += 34;
+  const descOrc = Number(orc.desconto_total || 0);
+  const boxH_orc = descOrc > 0 ? 34 : 22;
+
+  doc.setFillColor(220, 225, 240);
+  doc.roundedRect(132, y + 1, 65, boxH_orc, 3, 3, 'F');
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(131, y, 65, boxH_orc, 3, 3, 'F');
+
+  if (descOrc > 0) {
+    const brutoOrc = (orc.orcamento_itens || []).reduce((s, i) => s + Number(i.quantidade) * Number(i.preco_unitario), 0);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(...GRAY);
+    doc.text('SUBTOTAL', 163.5, y + 6, { align: 'center' });
+    doc.setFontSize(9);
+    doc.setTextColor(160, 170, 200);
+    doc.text(sanitize(fmt(brutoOrc)), 163.5, y + 12, { align: 'center' });
+    const tw2 = doc.getTextWidth(sanitize(fmt(brutoOrc)));
+    doc.setDrawColor(160, 170, 200);
+    doc.setLineWidth(0.4);
+    doc.line(163.5 - tw2/2, y + 11, 163.5 + tw2/2, y + 11);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
+    doc.setTextColor(255, 159, 122);
+    doc.text(`DESCONTO: − ${sanitize(fmt(descOrc))}`, 163.5, y + 19, { align: 'center' });
+
+    doc.setDrawColor(30, 50, 90);
+    doc.setLineWidth(0.4);
+    doc.line(135, y + 21, 193, y + 21);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(...GRAY);
+    doc.text('TOTAL DO ORCAMENTO', 163.5, y + 26, { align: 'center' });
+    doc.setFontSize(13);
+    doc.setTextColor(...RED_B);
+    doc.text(sanitize(fmt(orc.valor_total)), RM - 1, y + 33, { align: 'right' });
+  } else {
+    doc.setTextColor(...GRAY);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7.5);
+    doc.text('TOTAL DO ORCAMENTO', 163.5, y + 7, { align: 'center' });
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(15);
+    doc.setTextColor(...RED_B);
+    doc.text(sanitize(fmt(orc.valor_total)), RM - 1, y + 18, { align: 'right' });
+  }
+
+  y += boxH_orc + 12;
   if (y > 224) {
     doc.addPage();
     y = 22;
@@ -2914,6 +3125,23 @@ async function exportarPDFById(notaId) {
   });
 
   gerarPDFNota(nota, itens, ordem);
+}
+
+  function iniciarBackupMensalPDF() {
+  const hoje = new Date();
+  const iniEl = document.getElementById('rel-dt-ini');
+  const fimEl = document.getElementById('rel-dt-fim');
+
+  // Se os campos estiverem vazios, preenche com o mês atual
+  if (!iniEl.value || !fimEl.value) {
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const ultimoDia = new Date(ano, hoje.getMonth() + 1, 0).getDate();
+    iniEl.value = `${ano}-${mes}-01`;
+    fimEl.value = `${ano}-${mes}-${String(ultimoDia).padStart(2, '0')}`;
+  }
+
+  gerarBackupMensalPDF();
 }
 
 // ══════════════════════════════════════════════════════════════
