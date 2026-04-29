@@ -1962,12 +1962,22 @@ async function excluirOrdem(id) {
     // Reseta o orçamento vinculado para pendente
     const osExcluida = CACHE.ordens.find(o => o.id === id);
     if (osExcluida?.orcamento_id) {
-      await sb.from('orcamentos').update({ status: 'pendente' }).eq('id', osExcluida.orcamento_id);
+      const { error: errReset } = await sb.from('orcamentos')
+        .update({ status: 'pendente' })
+        .eq('id', osExcluida.orcamento_id);
+      if (errReset) {
+        console.warn('[excluirOrdem] Falha ao resetar orçamento:', errReset.message);
+      } else {
+        // Atualiza o cache local imediatamente para evitar estado sujo
+        const orcCache = CACHE.orcamentos.find(o => o.id === osExcluida.orcamento_id);
+        if (orcCache) orcCache.status = 'pendente';
+      }
     }
 
     toast('Ordem removida com sucesso.');
     await recarregarProdutos();
     await recarregarOrdens();
+    await recarregarOrcamentos(); // ← adicionado
     await recarregarNotas();
     renderOrdens();
   } finally {
@@ -2131,10 +2141,43 @@ async function excluirOrcamento(id) {
 async function converterOrcamento(id) {
   const orc = CACHE.orcamentos.find(o => o.id === id);
   if (!orc) return;
+
   if (orc.status === 'aprovado') {
-    toast('Este orçamento já foi convertido em OS.', 'error');
-    return;
+    // Verifica se ainda existe uma OS vinculada — pode ter sido deletada
+    showLoading();
+    const { data: osVinculada, error: errCheck } = await sb
+      .from('ordens_servico')
+      .select('id')
+      .eq('orcamento_id', id)
+      .maybeSingle();
+    hideLoading();
+
+    if (errCheck) {
+      toast('Erro ao verificar OS vinculada: ' + errCheck.message, 'error');
+      return;
+    }
+
+    if (osVinculada) {
+      // OS ainda existe — bloqueio legítimo
+      toast('Este orçamento já foi convertido em OS.', 'error');
+      return;
+    }
+
+    // OS foi deletada — reseta o status do orçamento para permitir nova conversão
+    const { error: errReset } = await sb
+      .from('orcamentos')
+      .update({ status: 'pendente' })
+      .eq('id', id);
+
+    if (errReset) {
+      toast('Erro ao resetar status do orçamento: ' + errReset.message, 'error');
+      return;
+    }
+
+    // Atualiza o cache local também
+    orc.status = 'pendente';
   }
+
   if (!confirm('Converter este orçamento em Ordem de Serviço?')) return;
   showLoading();
 
