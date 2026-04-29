@@ -985,35 +985,31 @@ async function carregarTudo() {
 
   try {
     const safe = async (query, nome) => {
-      let timeoutId;
-      try {
-        const timeout = new Promise(resolve => {
-          timeoutId = setTimeout(() => {
-            resolve({ data: [], error: null, __timeout: true });
-          }, DATA_LOAD_TIMEOUT_MS);
-        });
-        const resposta = await Promise.race([
-          Promise.resolve(query).finally(() => clearTimeout(timeoutId)),
-          timeout,
-        ]);
+  try {
+    // Cria a promise de timeout separada
+    const timeoutPromise = new Promise(resolve =>
+      setTimeout(() => resolve({ data: null, error: null, __timeout: true }), DATA_LOAD_TIMEOUT_MS)
+    );
 
-        if (resposta.__timeout) {
-          console.warn(`[carregarTudo] Timeout em "${nome}" após ${DATA_LOAD_TIMEOUT_MS / 1000}s`);
-          return { data: [], timeout: true };
-        }
+    // Corre a query contra o timeout
+    const resposta = await Promise.race([query, timeoutPromise]);
 
-        const { data, error } = resposta;
-        if (error) {
-          console.warn(`[carregarTudo] Erro em "${nome}":`, error.message);
-          return { data: [], timeout: false };
-        }
-        return { data: data || [], timeout: false };
-      } catch (e) {
-        if (timeoutId) clearTimeout(timeoutId);
-        console.warn(`[carregarTudo] Exceção em "${nome}":`, e);
-        return { data: [], timeout: false };
-      }
-    };
+    if (resposta.__timeout) {
+      console.warn(`[carregarTudo] Timeout em "${nome}" após ${DATA_LOAD_TIMEOUT_MS / 1000}s`);
+      return { data: [], timeout: true };
+    }
+
+    const { data, error } = resposta;
+    if (error) {
+      console.warn(`[carregarTudo] Erro em "${nome}":`, error.message);
+      return { data: [], timeout: false };
+    }
+    return { data: data || [], timeout: false };
+  } catch (e) {
+    console.warn(`[carregarTudo] Exceção em "${nome}":`, e);
+    return { data: [], timeout: false };
+  }
+};
 
     const resultados = await Promise.all([
       safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
