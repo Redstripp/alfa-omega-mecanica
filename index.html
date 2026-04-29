@@ -654,7 +654,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     storage: customStorage,       // usa nosso storage com fallback
     persistSession: true,          // garante que a sessão seja salva
     autoRefreshToken: true,        // renova o token automaticamente
-    detectSessionInUrl: true,      // necessário para alguns fluxos OAuth
+    detectSessionInUrl: false,      // necessário para alguns fluxos OAuth
   }
 });
 
