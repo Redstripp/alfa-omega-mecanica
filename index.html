@@ -828,44 +828,46 @@ sb.auth.onAuthStateChange(async (event, session) => {
 // ══════════════════════════════════════════════════════════════
 async function carregarTudo() {
   showLoading();
-  const safe = async (query, nome) => {
-    try {
-      const { data, error } = await query;
-      if (error) { console.warn(`[carregarTudo] Erro em "${nome}":`, error.message); return []; }
-      return data || [];
-    } catch (e) { console.warn(`[carregarTudo] Exceção em "${nome}":`, e); return []; }
-  };
+  try {
+    const safe = async (query, nome) => {
+      try {
+        const { data, error } = await query;
+        if (error) { console.warn(`[carregarTudo] Erro em "${nome}":`, error.message); return []; }
+        return data || [];
+      } catch (e) { console.warn(`[carregarTudo] Exceção em "${nome}":`, e); return []; }
+    };
 
-  const [clientes, produtos, ordens, orcamentos, notas] = await Promise.all([
-    safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
-    safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
-    safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
-    safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
-    safe(sb.from('notas_fiscais').select('*, clientes(nome), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
-  ]);
+    const [clientes, produtos, ordens, orcamentos, notas] = await Promise.all([
+      safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
+      safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
+      safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
+      safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
+      safe(sb.from('notas_fiscais').select('*, clientes(nome), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
+    ]);
 
-  CACHE.clientes   = clientes;
-  CACHE.produtos   = produtos;
-  CACHE.ordens     = ordens;
-  CACHE.orcamentos = orcamentos;
-  CACHE.notas      = notas;
+    CACHE.clientes   = clientes;
+    CACHE.produtos   = produtos;
+    CACHE.ordens     = ordens;
+    CACHE.orcamentos = orcamentos;
+    CACHE.notas      = notas;
 
-  // Avisa se algum módulo veio vazio por provável erro de RLS
-  const vazios = [
+    const vazios = [
       clientes.length === 0 && 'Clientes',
       produtos.length === 0 && 'Produtos',
       ordens.length   === 0 && 'Ordens',
     ].filter(Boolean);
-    // Avisa para qualquer tabela vazia, não só quando todas estão vazias
     if (vazios.length > 0) {
       console.warn('[RLS] Tabelas sem dados:', vazios.join(', '));
-      // Só exibe toast se TODAS estiverem vazias (provável bloqueio de RLS)
       if (vazios.length === 3) {
         toast('Sem acesso aos dados. Verifique as políticas RLS no Supabase.', 'error');
       }
     }
-
-  hideLoading();
+  } catch (e) {
+    console.error('[carregarTudo] Erro fatal:', e);
+    toast('Erro ao carregar dados do sistema.', 'error');
+  } finally {
+    hideLoading(); // ← SEMPRE esconde o loading, mesmo em caso de erro
+  }
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1329,31 +1331,38 @@ async function salvarOrdem() {
 
   if (tipo === 'orcamento') {
     const payload = {
-      cliente_id:  clienteId,
-      usuario_id:  currentUser.id,
-      descricao:   document.getElementById('ord-desc').value.trim() || null,
-      status:      document.getElementById('ord-status').value,
-      validade:    document.getElementById('ord-previsao').value || null,
-      valor_total: valorTotal,
-      numero:      idEdit ? undefined : gerarNumero('ORC', CACHE.orcamentos),
-    };
-    if (payload.numero === undefined) delete payload.numero;
-    let orcId;
-    if (idEdit) {
-      const { error } = await sb.from('orcamentos').update(payload).eq('id', idEdit);
-      if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
-      await sb.from('orcamento_itens').delete().eq('orcamento_id', idEdit);
-      orcId = idEdit;
-    } else {
-      const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
-      if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
-      orcId = data.id;
-    }
-    const itensPayload = itensValidos.map(i => ({
-      orcamento_id: orcId, produto_servico_id: i.produto_servico_id,
-      quantidade: i.quantidade, preco_unitario: i.preco_unitario, desconto: 0
-    }));
-    await sb.from('orcamento_itens').insert(itensPayload);
+  cliente_id:  clienteId,
+  usuario_id:  currentUser.id,
+  descricao:   document.getElementById('ord-desc').value.trim() || null,
+  status:      document.getElementById('ord-status').value || 'pendente',
+  validade:    document.getElementById('ord-previsao').value || null,
+  valor_total: valorTotal,
+};
+if (!idEdit) {
+  payload.numero = gerarNumero('ORC', CACHE.orcamentos);
+}
+let orcId;
+if (idEdit) {
+  const { error } = await sb.from('orcamentos').update(payload).eq('id', idEdit);
+  if (error) { hideLoading(); toast('Erro ao atualizar orçamento: ' + error.message, 'error'); return; }
+  const { error: errDel } = await sb.from('orcamento_itens').delete().eq('orcamento_id', idEdit);
+  if (errDel) { hideLoading(); toast('Erro ao limpar itens: ' + errDel.message, 'error'); return; }
+  orcId = idEdit;
+} else {
+  const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
+  if (error) { hideLoading(); toast('Erro ao criar orçamento: ' + error.message, 'error'); return; }
+  orcId = data.id;
+}
+if (!orcId) { hideLoading(); toast('Falha ao obter ID do orçamento.', 'error'); return; }
+const itensPayload = itensValidos.map(i => ({
+  orcamento_id:        orcId,
+  produto_servico_id:  i.produto_servico_id,
+  quantidade:          i.quantidade,
+  preco_unitario:      i.preco_unitario,
+  desconto:            0
+}));
+const { error: errItens } = await sb.from('orcamento_itens').insert(itensPayload);
+if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.message, 'error'); }
     toast(idEdit ? 'Orçamento atualizado!' : 'Orçamento criado!');
     fecharModal('modal-ordem');
     await recarregarOrcamentos();
@@ -1382,6 +1391,17 @@ async function salvarOrdem() {
       if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
       await sb.from('ordem_servico_itens').delete().eq('ordem_servico_id', idEdit);
       osId = idEdit;
+    
+      // Atualiza a nota fiscal vinculada, se existir
+      const notaVinculada = CACHE.notas.find(n => n.ordem_servico_id === idEdit);
+      if (notaVinculada) {
+        await sb.from('notas_fiscais').update({
+          valor_subtotal: valorTotal,
+          valor_total:    valorTotal,
+          valor_desconto: 0,
+        }).eq('id', notaVinculada.id);
+        toast('Nota fiscal vinculada também foi atualizada!', 'info');
+      }
     } else {
       const { data, error } = await sb.from('ordens_servico').insert(payload).select().single();
       if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
@@ -1401,14 +1421,28 @@ async function salvarOrdem() {
 }
 
 async function excluirOrdem(id) {
-  if (!confirm('Excluir esta ordem de serviço?')) return;
+  if (!confirm('Excluir esta ordem de serviço? Itens e notas fiscais vinculadas também serão removidos.')) return;
   showLoading();
-  const { error } = await sb.from('ordens_servico').delete().eq('id', id);
-  hideLoading();
-  if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
-  toast('Ordem removida.');
-  await recarregarOrdens();
-  renderOrdens();
+  try {
+    // 1º — Remove a nota fiscal vinculada (se houver)
+    const { error: errNota } = await sb.from('notas_fiscais').delete().eq('ordem_servico_id', id);
+    if (errNota) { toast('Erro ao remover nota fiscal: ' + errNota.message, 'error'); return; }
+
+    // 2º — Remove os itens da OS
+    const { error: errItens } = await sb.from('ordem_servico_itens').delete().eq('ordem_servico_id', id);
+    if (errItens) { toast('Erro ao remover itens da OS: ' + errItens.message, 'error'); return; }
+
+    // 3º — Remove a OS em si
+    const { error } = await sb.from('ordens_servico').delete().eq('id', id);
+    if (error) { toast('Erro ao excluir OS: ' + error.message, 'error'); return; }
+
+    toast('Ordem removida com sucesso.');
+    await recarregarOrdens();
+    await recarregarNotas();
+    renderOrdens();
+  } finally {
+    hideLoading();
+  }
 }
 
 async function recarregarOrdens() {
@@ -1580,7 +1614,7 @@ function mostrarNota(nota, ordem) {
         <div class="invoice-company">
           <h2>ALFA & ÔMEGA</h2>
           <p>AUTO MECÂNICA</p>
-          <p style="margin-top:8px;font-size:12px;opacity:.6">Maceió — Alagoas</p>
+          <p style="margin-top:8px;font-size:12px;opacity:.6">Arcoverde — Pernambuco</p>
         </div>
         <div class="invoice-num">
           <small>NOTA FISCAL INTERNA</small>
@@ -1708,7 +1742,7 @@ function gerarPDFNota(nota, itens, ordem) {
   doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(180, 195, 220);
-  doc.text('AUTO MECANICA  |  Maceio - Alagoas', 48, 27);
+  doc.text('AUTO MECANICA  |  Arcoverde - Pernambuco', 48, 27);
 
   doc.setFontSize(8);
   doc.setTextColor(...GRAY);
