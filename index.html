@@ -654,7 +654,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
     storage: customStorage,       // usa nosso storage com fallback
     persistSession: true,          // garante que a sessão seja salva
     autoRefreshToken: true,        // renova o token automaticamente
-    detectSessionInUrl: false,      // necessário para alguns fluxos OAuth
+    detectSessionInUrl: true,      // necessário para alguns fluxos OAuth
   }
 });
 
@@ -664,6 +664,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [] };
 let currentUser = null;
 let itemRows = [];
+const DATA_LOAD_TIMEOUT_MS = 15000;
 
 // ══════════════════════════════════════════════════════════════
 // GERADOR DE NÚMEROS SEQUENCIAIS
@@ -809,12 +810,20 @@ async function iniciarApp(user) {
 // Verifica sessão ativa ao carregar a página
 // Flag para evitar disparo duplo do onAuthStateChange + doLogin
 let _appIniciado = false;
-sb.auth.onAuthStateChange(async (event, session) => {
+sb.auth.onAuthStateChange((event, session) => {
   console.log('[Auth Event]', event, '| Sessão:', !!session, '| Iniciado:', _appIniciado);
 
   if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !_appIniciado) {
     _appIniciado = true;
-    await iniciarApp(session.user);
+    setTimeout(() => {
+      iniciarApp(session.user).catch((e) => {
+        console.error('[Auth] Falha ao iniciar app:', e);
+        _appIniciado = false;
+        hideLoading();
+        toast('Erro ao iniciar o sistema. Tente recarregar a página.', 'error');
+      });
+    }, 0);
+    return;
   }
   if (event === 'SIGNED_OUT') {
     _appIniciado = false;
@@ -831,28 +840,47 @@ sb.auth.onAuthStateChange(async (event, session) => {
 async function carregarTudo() {
   showLoading();
 
-  // Timeout de segurança: se demorar mais de 15s, esconde o spinner de qualquer forma
-  const timeoutId = setTimeout(() => {
-    hideLoading();
-    toast('Conexão lenta ou sem resposta. Tente recarregar a página.', 'error');
-  }, 15000);
-
   try {
     const safe = async (query, nome) => {
+      let timeoutId;
       try {
-        const { data, error } = await query;
-        if (error) { console.warn(`[carregarTudo] Erro em "${nome}":`, error.message); return []; }
-        return data || [];
-      } catch (e) { console.warn(`[carregarTudo] Exceção em "${nome}":`, e); return []; }
+        const timeout = new Promise(resolve => {
+          timeoutId = setTimeout(() => {
+            resolve({ data: [], error: null, __timeout: true });
+          }, DATA_LOAD_TIMEOUT_MS);
+        });
+        const resposta = await Promise.race([
+          Promise.resolve(query).finally(() => clearTimeout(timeoutId)),
+          timeout,
+        ]);
+
+        if (resposta.__timeout) {
+          console.warn(`[carregarTudo] Timeout em "${nome}" após ${DATA_LOAD_TIMEOUT_MS / 1000}s`);
+          return { data: [], timeout: true };
+        }
+
+        const { data, error } = resposta;
+        if (error) {
+          console.warn(`[carregarTudo] Erro em "${nome}":`, error.message);
+          return { data: [], timeout: false };
+        }
+        return { data: data || [], timeout: false };
+      } catch (e) {
+        if (timeoutId) clearTimeout(timeoutId);
+        console.warn(`[carregarTudo] Exceção em "${nome}":`, e);
+        return { data: [], timeout: false };
+      }
     };
 
-    const [clientes, produtos, ordens, orcamentos, notas] = await Promise.all([
+    const resultados = await Promise.all([
       safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
       safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
       safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
       safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
       safe(sb.from('notas_fiscais').select('*, clientes(nome), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
     ]);
+    const [clientes, produtos, ordens, orcamentos, notas] = resultados.map(r => r.data);
+    const timeouts = resultados.filter(r => r.timeout).length;
 
     CACHE.clientes   = clientes;
     CACHE.produtos   = produtos;
@@ -865,7 +893,9 @@ async function carregarTudo() {
       produtos.length === 0 && 'Produtos',
       ordens.length   === 0 && 'Ordens',
     ].filter(Boolean);
-    if (vazios.length > 0) {
+    if (timeouts > 0) {
+      toast('Conexão lenta ou sem resposta. Os dados que não responderam foram ignorados.', 'error');
+    } else if (vazios.length > 0) {
       console.warn('[RLS] Tabelas sem dados:', vazios.join(', '));
       if (vazios.length === 3) {
         toast('Sem acesso aos dados. Verifique as políticas RLS no Supabase.', 'error');
@@ -876,7 +906,6 @@ async function carregarTudo() {
     console.error('[carregarTudo] Erro fatal:', e);
     toast('Erro inesperado ao carregar dados.', 'error');
   } finally {
-    clearTimeout(timeoutId); // cancela o timeout se terminou antes dos 15s
     hideLoading();           // SEMPRE esconde o spinner
   }
 }
