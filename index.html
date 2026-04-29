@@ -623,27 +623,29 @@ const SUPABASE_URL  = 'https://borvvidcelwjaittwzjm.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvcnZ2aWRjZWx3amFpdHR3emptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjMyNjAsImV4cCI6MjA5MzAzOTI2MH0.FgW8t31lmf9Masm-aR1JzCJffCRjxgVyytoXKCFH-Q8';
 
 // Storage customizado: tenta localStorage, cai para sessionStorage se bloqueado
+// Fallback em memória caso localStorage E sessionStorage sejam bloqueados (ex: SES)
+const _memStorage = {};
 const customStorage = {
   getItem: (key) => {
-    try {
-      return localStorage.getItem(key);
-    } catch {
-      return sessionStorage.getItem(key);
+    try { return localStorage.getItem(key); }
+    catch {
+      try { return sessionStorage.getItem(key); }
+      catch { return _memStorage[key] ?? null; }
     }
   },
   setItem: (key, value) => {
-    try {
-      localStorage.setItem(key, value);
-    } catch {
-      sessionStorage.setItem(key, value);
-    }
+    try { localStorage.setItem(key, value); return; }
+    catch {}
+    try { sessionStorage.setItem(key, value); return; }
+    catch {}
+    _memStorage[key] = value; // último recurso: memória
   },
   removeItem: (key) => {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      sessionStorage.removeItem(key);
-    }
+    try { localStorage.removeItem(key); }
+    catch {}
+    try { sessionStorage.removeItem(key); }
+    catch {}
+    delete _memStorage[key];
   },
 };
 
@@ -828,6 +830,13 @@ sb.auth.onAuthStateChange(async (event, session) => {
 // ══════════════════════════════════════════════════════════════
 async function carregarTudo() {
   showLoading();
+
+  // Timeout de segurança: se demorar mais de 15s, esconde o spinner de qualquer forma
+  const timeoutId = setTimeout(() => {
+    hideLoading();
+    toast('Conexão lenta ou sem resposta. Tente recarregar a página.', 'error');
+  }, 15000);
+
   try {
     const safe = async (query, nome) => {
       try {
@@ -862,11 +871,13 @@ async function carregarTudo() {
         toast('Sem acesso aos dados. Verifique as políticas RLS no Supabase.', 'error');
       }
     }
+
   } catch (e) {
     console.error('[carregarTudo] Erro fatal:', e);
-    toast('Erro ao carregar dados do sistema.', 'error');
+    toast('Erro inesperado ao carregar dados.', 'error');
   } finally {
-    hideLoading(); // ← SEMPRE esconde o loading, mesmo em caso de erro
+    clearTimeout(timeoutId); // cancela o timeout se terminou antes dos 15s
+    hideLoading();           // SEMPRE esconde o spinner
   }
 }
 
