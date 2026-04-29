@@ -4,8 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alfa & Ômega — Sistema de Gestão</title>
-<!-- Favicon inline — elimina o erro 404 -->
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -285,10 +283,6 @@ tbody tr:last-child { border-bottom: none; }
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
         Notas Fiscais
       </div>
-      <div class="nav-item" onclick="navigate('financeiro')">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
-        Financeiro
-      </div>
       <div class="nav-section">Relatórios</div>
       <div class="nav-item" onclick="navigate('relatorios')">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
@@ -432,22 +426,6 @@ tbody tr:last-child { border-bottom: none; }
       </div>
     </div>
 
-    <!-- FINANCEIRO -->
-    <div class="page" id="page-financeiro">
-      <div class="search-bar">
-        <input type="text" placeholder="Buscar cliente, NF ou status..." id="busca-financeiro" oninput="renderFinanceiro()">
-      </div>
-      <div class="stats-grid" id="financeiro-stats"></div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>NF</th><th>Cliente</th><th>Emissão</th><th>Total</th><th>Pago</th><th>Saldo</th><th>Status</th><th>Ações</th></tr></thead>
-            <tbody id="tbody-financeiro"><tr><td colspan="8" class="text-muted" style="padding:30px;text-align:center">Carregando...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
     <!-- RELATÓRIOS -->
     <div class="page" id="page-relatorios">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
@@ -576,7 +554,7 @@ tbody tr:last-child { border-bottom: none; }
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
-        <div class="form-group"><label id="ord-previsao-label">Previsão de Entrega</label><input type="date" id="ord-previsao"></div>
+        <div class="form-group"><label>Previsão de Entrega</label><input type="date" id="ord-previsao"></div>
       </div>
       <!-- Veículo -->
       <div id="campos-veiculo">
@@ -593,14 +571,14 @@ tbody tr:last-child { border-bottom: none; }
       <div class="divider"></div>
       <div class="form-group mb-16 full"><label>Descrição / Problema Relatado</label><textarea id="ord-desc" rows="2"></textarea></div>
       <!-- Itens -->
-      <div class="section-title mb-8" id="ord-itens-title" style="font-size:15px">Itens da Ordem</div>
+      <div class="section-title mb-8" style="font-size:15px">Itens da Ordem</div>
       <div class="order-items-editor">
         <div class="order-items-header"><div>Produto / Serviço</div><div>Qtd</div><div>Valor Unit.</div><div></div></div>
         <div id="order-items-rows"></div>
       </div>
       <button class="btn btn-outline btn-sm" onclick="addItemRow()">+ Adicionar Item</button>
       <div class="total-display" style="margin-top:16px">
-        <span class="label" id="ord-total-label">Total da Ordem</span>
+        <span class="label">Total da Ordem</span>
         <span class="value" id="ord-total">R$ 0,00</span>
       </div>
     </div>
@@ -615,7 +593,7 @@ tbody tr:last-child { border-bottom: none; }
 <div class="modal-overlay" id="modal-nota">
   <div class="modal" style="max-width:800px">
     <div class="modal-header">
-      <div class="modal-title" id="modal-documento-title">Nota Fiscal</div>
+      <div class="modal-title">Nota Fiscal</div>
       <button class="modal-close" onclick="fecharModal('modal-nota')">×</button>
     </div>
     <div class="modal-body">
@@ -623,89 +601,15 @@ tbody tr:last-child { border-bottom: none; }
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="fecharModal('modal-nota')">Fechar</button>
-      <button class="btn btn-primary" onclick="imprimirDocumento()">
+      <button class="btn btn-primary" onclick="imprimirNota()">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
         Imprimir
       </button>
-      <button class="btn btn-red" id="btn-documento-pdf" onclick="exportarDocumentoPDF()">
+      <button class="btn btn-red" onclick="exportarPDF()">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
         Exportar PDF
       </button>
     </div>
-  </div>
-</div>
-
-<!-- Pagamento -->
-<div class="modal-overlay" id="modal-pagamento">
-  <div class="modal" style="max-width:520px">
-    <div class="modal-header">
-      <div class="modal-title">Registrar Pagamento</div>
-      <button class="modal-close" onclick="fecharModal('modal-pagamento')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="pag-nota-id">
-      <div class="mb-16" id="pag-resumo"></div>
-      <div class="form-grid mb-16">
-        <div class="form-group"><label>Data</label><input type="date" id="pag-data"></div>
-        <div class="form-group"><label>Valor</label><input type="number" id="pag-valor" step="0.01" min="0"></div>
-        <div class="form-group full"><label>Forma de Pagamento</label>
-          <select id="pag-metodo">
-            <option value="dinheiro">Dinheiro</option>
-            <option value="pix">Pix</option>
-            <option value="cartao_credito">Cartão de crédito</option>
-            <option value="cartao_debito">Cartão de débito</option>
-            <option value="transferencia">Transferência</option>
-            <option value="boleto">Boleto</option>
-            <option value="outro">Outro</option>
-          </select>
-        </div>
-        <div class="form-group full"><label>Observação</label><textarea id="pag-obs" rows="2"></textarea></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="fecharModal('modal-pagamento')">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarPagamento()">Salvar Pagamento</button>
-    </div>
-  </div>
-</div>
-
-<!-- Movimentação de Estoque -->
-<div class="modal-overlay" id="modal-estoque">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-estoque-title">Movimentar Estoque</div>
-      <button class="modal-close" onclick="fecharModal('modal-estoque')">×</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="mov-produto-id">
-      <div class="mb-16" id="mov-resumo"></div>
-      <div class="form-grid mb-16">
-        <div class="form-group"><label>Tipo</label>
-          <select id="mov-tipo" onchange="atualizarTextoMovimento()">
-            <option value="entrada">Entrada</option>
-            <option value="saida">Saída</option>
-            <option value="ajuste">Ajuste de saldo</option>
-          </select>
-        </div>
-        <div class="form-group"><label id="mov-qtd-label">Quantidade</label><input type="number" id="mov-quantidade" step="0.001" min="0"></div>
-        <div class="form-group full"><label>Observação</label><textarea id="mov-obs" rows="2"></textarea></div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="fecharModal('modal-estoque')">Cancelar</button>
-      <button class="btn btn-primary" onclick="salvarMovimentacaoEstoque()">Salvar Movimento</button>
-    </div>
-  </div>
-</div>
-
-<!-- Histórico de Estoque -->
-<div class="modal-overlay" id="modal-hist-estoque">
-  <div class="modal" style="max-width:760px">
-    <div class="modal-header">
-      <div class="modal-title" id="modal-hist-estoque-title">Histórico de Estoque</div>
-      <button class="modal-close" onclick="fecharModal('modal-hist-estoque')">×</button>
-    </div>
-    <div class="modal-body" id="modal-hist-estoque-body"></div>
   </div>
 </div>
 
@@ -715,51 +619,14 @@ tbody tr:last-child { border-bottom: none; }
 // ══════════════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://borvvidcelwjaittwzjm.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvcnZ2aWRjZWx3amFpdHR3emptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjMyNjAsImV4cCI6MjA5MzAzOTI2MH0.FgW8t31lmf9Masm-aR1JzCJffCRjxgVyytoXKCFH-Q8';
-
-// Storage customizado: tenta localStorage, cai para sessionStorage se bloqueado
-// Fallback em memória caso localStorage E sessionStorage sejam bloqueados (ex: SES)
-const _memStorage = {};
-const customStorage = {
-  getItem: (key) => {
-    try { return localStorage.getItem(key); }
-    catch {
-      try { return sessionStorage.getItem(key); }
-      catch { return _memStorage[key] ?? null; }
-    }
-  },
-  setItem: (key, value) => {
-    try { localStorage.setItem(key, value); return; }
-    catch {}
-    try { sessionStorage.setItem(key, value); return; }
-    catch {}
-    _memStorage[key] = value; // último recurso: memória
-  },
-  removeItem: (key) => {
-    try { localStorage.removeItem(key); }
-    catch {}
-    try { sessionStorage.removeItem(key); }
-    catch {}
-    delete _memStorage[key];
-  },
-};
-
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-  auth: {
-    storage: customStorage,       // usa nosso storage com fallback
-    persistSession: true,          // garante que a sessão seja salva
-    autoRefreshToken: true,        // renova o token automaticamente
-    detectSessionInUrl: true,      // necessário para alguns fluxos OAuth
-  }
-});
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL (cache em memória — substituiu o localStorage)
 // ══════════════════════════════════════════════════════════════
-let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [], pagamentos: [], movimentacoes: [] };
+let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [] };
 let currentUser = null;
 let itemRows = [];
-let documentoAtual = { tipo: null, id: null };
-const DATA_LOAD_TIMEOUT_MS = 15000;
 
 // ══════════════════════════════════════════════════════════════
 // GERADOR DE NÚMEROS SEQUENCIAIS
@@ -812,35 +679,9 @@ function statusBadge(s) {
     aprovado:       ['badge-success', 'Aprovado'],
     recusado:       ['badge-danger',  'Recusado'],
     expirado:       ['badge-gray',    'Expirado'],
-    em_aberto:      ['badge-warning', 'Em aberto'],
-    parcial:        ['badge-info',    'Parcial'],
-    pago:           ['badge-success', 'Pago'],
-    entrada:        ['badge-success', 'Entrada'],
-    saida:          ['badge-warning', 'Saída'],
-    ajuste:         ['badge-info',    'Ajuste'],
   };
   const [cls, label] = map[s] || ['badge-gray', s];
   return `<span class="badge ${cls}">${label}</span>`;
-}
-function statusLabel(s) {
-  const map = {
-    em_andamento: 'Em andamento',
-    aguardando_peca: 'Aguardando peça',
-    concluido: 'Concluído',
-    entregue: 'Entregue',
-    cancelado: 'Cancelado',
-    pendente: 'Pendente',
-    aprovado: 'Aprovado',
-    recusado: 'Recusado',
-    expirado: 'Expirado',
-    em_aberto: 'Em aberto',
-    parcial: 'Parcial',
-    pago: 'Pago',
-    entrada: 'Entrada',
-    saida: 'Saída',
-    ajuste: 'Ajuste',
-  };
-  return map[s] || s || '—';
 }
 function clienteNome(id) {
   const c = CACHE.clientes.find(x => x.id === id);
@@ -869,24 +710,18 @@ async function doLogin() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
   if (error) {
-    const mensagens = {
-      'Invalid login credentials': 'E-mail ou senha incorretos.',
-      'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
-      'Too many requests': 'Muitas tentativas. Aguarde alguns minutos.',
-    };
-    errEl.textContent = mensagens[error.message] || 'Erro ao entrar: ' + error.message;
-    console.error('[Auth] Erro de login:', error);
+    errEl.textContent = 'E-mail ou senha incorretos.';
     btn.disabled = false;
     btn.textContent = 'ENTRAR';
     return;
   }
-  console.log('[Auth] Login OK, iniciando app...');
-  await garantirAppIniciado(data.user || data.session?.user);
+  _appIniciado = true;
+  await iniciarApp(data.user);
 }
 
 async function doLogout() {
   await sb.auth.signOut();
-  CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [], pagamentos: [], movimentacoes: [] };
+  CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [] };
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
@@ -898,156 +733,72 @@ async function doLogout() {
 async function iniciarApp(user) {
   currentUser = user;
 
-  // Mostra o app IMEDIATAMENTE, sem esperar a query de perfil
+  // Busca nome do perfil — tolerante a falha (tabela pode não existir ou RLS bloquear)
+  let nome = user.email.split('@')[0];
+  try {
+    const { data: perfil, error } = await sb.from('perfis').select('nome').eq('id', user.id).maybeSingle();
+    if (!error && perfil?.nome) nome = perfil.nome;
+  } catch (_) { /* silencioso — continua com e-mail como nome */ }
+  const iniciais = nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+
+  document.getElementById('user-name').textContent = nome;
+  document.getElementById('user-avatar').textContent = iniciais;
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
-  // Usa o email como nome inicial enquanto carrega
-  let nome = user.email.split('@')[0];
-  document.getElementById('user-name').textContent = nome;
-  document.getElementById('user-avatar').textContent = nome.slice(0, 2).toUpperCase();
-
-  // Reseta o botão de login (caso venha do fluxo de login)
-  const btn = document.getElementById('btn-login');
-  if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
-
-  // Busca perfil em paralelo com os dados — não bloqueia a tela
-  sb.from('perfis').select('nome').eq('id', user.id).maybeSingle()
-    .then(({ data: perfil }) => {
-      if (perfil?.nome) {
-        const iniciais = perfil.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-        document.getElementById('user-name').textContent = perfil.nome;
-        document.getElementById('user-avatar').textContent = iniciais;
-      }
-    })
-    .catch(() => { /* silencioso */ });
-
-  // Renderiza um dashboard vazio primeiro para nunca deixar a tela presa em "Carregando..."
-  renderDashboard();
   await carregarTudo();
   renderDashboard();
 }
 
 // Verifica sessão ativa ao carregar a página
+// Flag para evitar disparo duplo do onAuthStateChange + doLogin
 let _appIniciado = false;
-let _iniciandoApp = null;
-
-function mostrarLogin() {
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('btn-login').disabled = false;
-  document.getElementById('btn-login').textContent = 'ENTRAR';
-}
-
-async function garantirAppIniciado(user) {
-  if (!user) return;
-  if (_appIniciado || _iniciandoApp) return _iniciandoApp;
-
-  _appIniciado = true;
-  _iniciandoApp = iniciarApp(user)
-    .catch((e) => {
-      console.error('[Auth] Falha ao iniciar app:', e);
-      _appIniciado = false;
-      hideLoading();
-      toast('Erro ao iniciar o sistema. Tente recarregar a página.', 'error');
-    })
-    .finally(() => { _iniciandoApp = null; });
-
-  return _iniciandoApp;
-}
-
-sb.auth.onAuthStateChange((event, session) => {
-  console.log('[Auth Event]', event, '| Sessão:', !!session, '| Iniciado:', _appIniciado);
-
+sb.auth.onAuthStateChange(async (event, session) => {
+  if (event === 'SIGNED_IN' && session && !_appIniciado) {
+    _appIniciado = true;
+    await iniciarApp(session.user);
+  }
   if (event === 'SIGNED_OUT') {
     _appIniciado = false;
-    _iniciandoApp = null;
-    mostrarLogin();
   }
 });
-
-async function verificarSessaoInicial() {
-  try {
-    const { data, error } = await sb.auth.getSession();
-    if (error) console.warn('[Auth] Erro ao verificar sessão:', error.message);
-    if (data?.session?.user) await garantirAppIniciado(data.session.user);
-  } catch (e) {
-    console.warn('[Auth] Exceção ao verificar sessão:', e);
-  }
-}
-verificarSessaoInicial();
 
 // ══════════════════════════════════════════════════════════════
 // CARREGAMENTO DE DADOS
 // ══════════════════════════════════════════════════════════════
 async function carregarTudo() {
   showLoading();
+  const safe = async (query, nome) => {
+    try {
+      const { data, error } = await query;
+      if (error) { console.warn(`[carregarTudo] Erro em "${nome}":`, error.message); return []; }
+      return data || [];
+    } catch (e) { console.warn(`[carregarTudo] Exceção em "${nome}":`, e); return []; }
+  };
 
-  try {
-    const safe = async (queryPromise, nome) => {
-      try {
-        const timeoutPromise = new Promise(resolve =>
-          setTimeout(() => resolve({ data: null, error: null, __timeout: true }), DATA_LOAD_TIMEOUT_MS)
-        );
-        // query corre diretamente — sem wrapper nem .finally() que causavam condição de corrida
-        const resposta = await Promise.race([queryPromise, timeoutPromise]);
-        if (resposta.__timeout) {
-          console.warn(`[carregarTudo] Timeout em "${nome}" após ${DATA_LOAD_TIMEOUT_MS / 1000}s`);
-          return { data: [], timeout: true };
-        }
-        const { data, error } = resposta;
-        if (error) {
-          console.warn(`[carregarTudo] Erro em "${nome}":`, error.message);
-          return { data: [], timeout: false };
-        }
-        console.log(`[carregarTudo] "${nome}": ${(data || []).length} registros`);
-        return { data: data || [], timeout: false };
-      } catch (e) {
-        console.warn(`[carregarTudo] Exceção em "${nome}":`, e);
-        return { data: [], timeout: false };
-      }
-    };
+  const [clientes, produtos, ordens, orcamentos, notas] = await Promise.all([
+    safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
+    safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
+    safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
+    safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
+    safe(sb.from('notas_fiscais').select('*, clientes(nome), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
+  ]);
 
-    const resultados = await Promise.all([
-      safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
-      safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
-      safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
-      safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
-      safe(sb.from('notas_fiscais').select('*, clientes(nome, cpf_cnpj, telefone), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
-      safe(sb.from('pagamentos').select('*').order('data_pagamento', { ascending: false }), 'pagamentos'),
-      safe(sb.from('movimentacoes_estoque').select('*, produtos_servicos(nome, unidade_medida)').order('criado_em', { ascending: false }).limit(200), 'movimentacoes_estoque'),
-    ]);
-    const [clientes, produtos, ordens, orcamentos, notas, pagamentos, movimentacoes] = resultados.map(r => r.data);
-    const timeouts = resultados.filter(r => r.timeout).length;
+  CACHE.clientes   = clientes;
+  CACHE.produtos   = produtos;
+  CACHE.ordens     = ordens;
+  CACHE.orcamentos = orcamentos;
+  CACHE.notas      = notas;
 
-    CACHE.clientes   = clientes;
-    CACHE.produtos   = produtos;
-    CACHE.ordens     = ordens;
-    CACHE.orcamentos = orcamentos;
-    CACHE.notas      = notas;
-    CACHE.pagamentos = pagamentos;
-    CACHE.movimentacoes = movimentacoes;
+  // Avisa se algum módulo veio vazio por provável erro de RLS
+  const vazios = [
+    clientes.length === 0 && 'Clientes',
+    produtos.length === 0 && 'Produtos',
+    ordens.length   === 0 && 'Ordens',
+  ].filter(Boolean);
+  if (vazios.length === 3) toast('Verifique as políticas RLS no Supabase.', 'error');
 
-    const vazios = [
-      clientes.length === 0 && 'Clientes',
-      produtos.length === 0 && 'Produtos',
-      ordens.length   === 0 && 'Ordens',
-    ].filter(Boolean);
-    if (timeouts > 0) {
-      toast('Conexão lenta ou sem resposta. Os dados que não responderam foram ignorados.', 'error');
-    } else if (vazios.length > 0) {
-      console.warn('[RLS] Tabelas sem dados:', vazios.join(', '));
-      if (vazios.length === 3) {
-        toast('Sem acesso aos dados. Verifique as políticas RLS no Supabase.', 'error');
-      }
-    }
-
-  } catch (e) {
-    console.error('[carregarTudo] Erro fatal:', e);
-    toast('Erro inesperado ao carregar dados.', 'error');
-  } finally {
-    hideLoading();           // SEMPRE esconde o spinner
-  }
+  hideLoading();
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1056,7 +807,7 @@ async function carregarTudo() {
 const pageTitles = {
   dashboard: 'Dashboard', clientes: 'Clientes', produtos: 'Produtos & Serviços',
   ordens: 'Ordens de Serviço', orcamentos: 'Orçamentos',
-  notas: 'Notas Fiscais', financeiro: 'Financeiro', relatorios: 'Relatórios'
+  notas: 'Notas Fiscais', relatorios: 'Relatórios'
 };
 
 function navigate(page) {
@@ -1069,8 +820,7 @@ function navigate(page) {
   document.getElementById('page-title').textContent = pageTitles[page] || page;
   const renders = {
     dashboard: renderDashboard, clientes: renderClientes, produtos: renderProdutos,
-    ordens: renderOrdens, orcamentos: renderOrcamentos, notas: renderNotas,
-    financeiro: renderFinanceiro, relatorios: () => {}
+    ordens: renderOrdens, orcamentos: renderOrcamentos, notas: renderNotas, relatorios: () => {}
   };
   if (renders[page]) renders[page]();
 }
@@ -1266,9 +1016,6 @@ function renderProdutos() {
         <td>${p.tipo === 'produto' ? `<span class="badge ${p.estoque_atual <= p.estoque_minimo && p.estoque_minimo > 0 ? 'badge-danger' : 'badge-success'}">${p.estoque_atual} ${p.unidade_medida}</span>` : '—'}</td>
         <td>${p.tipo === 'produto' ? p.estoque_minimo : '—'}</td>
         <td>
-          ${p.tipo === 'produto' ? `<button class="btn btn-success btn-xs" onclick="abrirMovimentacaoEstoque('${p.id}','entrada')">Entrada</button>
-          <button class="btn btn-warning btn-xs" onclick="abrirMovimentacaoEstoque('${p.id}','saida')">Saída</button>
-          <button class="btn btn-outline btn-xs" onclick="verHistoricoEstoque('${p.id}')">Histórico</button>` : ''}
           <button class="btn btn-outline btn-xs" onclick="editarProduto('${p.id}')">Editar</button>
           <button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">Excluir</button>
         </td>
@@ -1361,101 +1108,6 @@ async function recarregarProdutos() {
   CACHE.produtos = data || [];
 }
 
-function abrirMovimentacaoEstoque(produtoId, tipo = 'entrada') {
-  const p = CACHE.produtos.find(x => x.id === produtoId);
-  if (!p || p.tipo !== 'produto') { toast('Produto não encontrado.', 'error'); return; }
-  document.getElementById('mov-produto-id').value = p.id;
-  document.getElementById('mov-tipo').value = tipo;
-  document.getElementById('mov-quantidade').value = '';
-  document.getElementById('mov-obs').value = '';
-  document.getElementById('modal-estoque-title').textContent = 'Movimentar Estoque — ' + p.nome;
-  document.getElementById('mov-resumo').innerHTML = `
-    <p><strong>${p.nome}</strong></p>
-    <p class="text-muted">Saldo atual: ${p.estoque_atual || 0} ${p.unidade_medida || 'un'} | Mínimo: ${p.estoque_minimo || 0}</p>`;
-  atualizarTextoMovimento();
-  document.getElementById('modal-estoque').classList.add('open');
-}
-
-function atualizarTextoMovimento() {
-  const tipo = document.getElementById('mov-tipo')?.value || 'entrada';
-  document.getElementById('mov-qtd-label').textContent = tipo === 'ajuste' ? 'Novo saldo' : 'Quantidade';
-}
-
-async function salvarMovimentacaoEstoque() {
-  const produtoId = document.getElementById('mov-produto-id').value;
-  const produto = CACHE.produtos.find(p => p.id === produtoId);
-  if (!produto) { toast('Produto não encontrado.', 'error'); return; }
-
-  const tipo = document.getElementById('mov-tipo').value;
-  const quantidade = parseFloat(document.getElementById('mov-quantidade').value);
-  const observacao = document.getElementById('mov-obs').value.trim() || null;
-  if (isNaN(quantidade) || quantidade < 0) { toast('Informe uma quantidade válida.', 'error'); return; }
-
-  showLoading();
-  const { error: rpcError } = await sb.rpc('registrar_movimentacao_estoque', {
-    p_produto_id: produtoId,
-    p_tipo: tipo,
-    p_quantidade: quantidade,
-    p_observacao: observacao,
-  });
-
-  if (rpcError) {
-    console.warn('[estoque] RPC indisponível, tentando atualização simples:', rpcError.message);
-    const atual = Number(produto.estoque_atual || 0);
-    const novoEstoque = tipo === 'entrada' ? atual + quantidade : tipo === 'saida' ? atual - quantidade : quantidade;
-    if (novoEstoque < 0) {
-      hideLoading();
-      toast('Estoque insuficiente para esta saída.', 'error');
-      return;
-    }
-
-    const { error: updError } = await sb.from('produtos_servicos').update({ estoque_atual: novoEstoque }).eq('id', produtoId);
-    if (updError) {
-      hideLoading();
-      toast('Erro ao atualizar estoque: ' + updError.message, 'error');
-      return;
-    }
-    toast('Estoque atualizado. Para histórico completo, aplique o supabase_melhorias.sql.', 'info');
-  } else {
-    toast('Movimentação registrada!');
-  }
-
-  hideLoading();
-  fecharModal('modal-estoque');
-  await recarregarProdutos();
-  await recarregarMovimentacoesEstoque();
-  renderProdutos();
-}
-
-function verHistoricoEstoque(produtoId) {
-  const p = CACHE.produtos.find(x => x.id === produtoId);
-  if (!p) return;
-  const lista = CACHE.movimentacoes.filter(m => m.produto_servico_id === produtoId);
-  document.getElementById('modal-hist-estoque-title').textContent = 'Histórico — ' + p.nome;
-  document.getElementById('modal-hist-estoque-body').innerHTML = lista.length
-    ? `<table><thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Antes</th><th>Depois</th><th>Obs.</th></tr></thead><tbody>
-      ${lista.map(m => `<tr>
-        <td>${fmtDate(m.criado_em)}</td>
-        <td>${statusBadge(m.tipo)}</td>
-        <td>${Number(m.quantidade || 0)} ${p.unidade_medida || 'un'}</td>
-        <td>${m.estoque_anterior ?? '—'}</td>
-        <td>${m.estoque_posterior ?? '—'}</td>
-        <td>${m.observacao || '—'}</td>
-      </tr>`).join('')}
-      </tbody></table>`
-    : '<p class="text-muted">Nenhuma movimentação registrada. Aplique o arquivo supabase_melhorias.sql para habilitar histórico completo.</p>';
-  document.getElementById('modal-hist-estoque').classList.add('open');
-}
-
-async function recarregarMovimentacoesEstoque() {
-  const { data, error } = await sb.from('movimentacoes_estoque')
-    .select('*, produtos_servicos(nome, unidade_medida)')
-    .order('criado_em', { ascending: false })
-    .limit(200);
-  if (error) { console.warn('[estoque] histórico indisponível:', error.message); CACHE.movimentacoes = []; return; }
-  CACHE.movimentacoes = data || [];
-}
-
 // ══════════════════════════════════════════════════════════════
 // ORDENS DE SERVIÇO
 // ══════════════════════════════════════════════════════════════
@@ -1486,54 +1138,15 @@ function renderOrdens() {
     : '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-gray)">Nenhuma ordem encontrada.</td></tr>';
 }
 
-const STATUS_ORDEM_OPTIONS = [
-  ['em_andamento', 'Em andamento'],
-  ['aguardando_peca', 'Aguardando peça'],
-  ['concluido', 'Concluído'],
-  ['entregue', 'Entregue'],
-  ['cancelado', 'Cancelado'],
-];
-const STATUS_ORCAMENTO_OPTIONS = [
-  ['pendente', 'Pendente'],
-  ['aprovado', 'Aprovado'],
-  ['recusado', 'Recusado'],
-  ['expirado', 'Expirado'],
-];
-
-function preencherStatus(tipo, valor) {
-  const opcoes = tipo === 'orcamento' ? STATUS_ORCAMENTO_OPTIONS : STATUS_ORDEM_OPTIONS;
-  const select = document.getElementById('ord-status');
-  select.innerHTML = opcoes.map(([value, label]) => `<option value="${value}">${label}</option>`).join('');
-  select.value = opcoes.some(([value]) => value === valor) ? valor : opcoes[0][0];
-}
-
-function statusOrcamentoSeguro(status) {
-  return STATUS_ORCAMENTO_OPTIONS.some(([value]) => value === status) ? status : 'pendente';
-}
-
-function dataISOEmDias(dias) {
-  const data = new Date();
-  data.setDate(data.getDate() + dias);
-  return data.toISOString().split('T')[0];
-}
-
-function configurarTextosModalOrdem(tipo) {
-  const orcamento = tipo === 'orcamento';
-  document.getElementById('ord-previsao-label').textContent = orcamento ? 'Validade do Orçamento' : 'Previsão de Entrega';
-  document.getElementById('ord-itens-title').textContent = orcamento ? 'Itens do Orçamento' : 'Itens da Ordem';
-  document.getElementById('ord-total-label').textContent = orcamento ? 'Total do Orçamento' : 'Total da Ordem';
-}
-
 function abrirModalOrdem(tipo) {
   tipo = tipo || 'ordem';
   document.getElementById('ordem-id').value    = '';
   document.getElementById('ordem-tipo').value  = tipo;
   document.getElementById('modal-ordem-title').textContent = tipo === 'orcamento' ? 'Novo Orçamento' : 'Nova Ordem de Serviço';
   document.getElementById('ord-data').value    = new Date().toISOString().split('T')[0];
-  preencherStatus(tipo, tipo === 'orcamento' ? 'pendente' : 'em_andamento');
-  configurarTextosModalOrdem(tipo);
+  document.getElementById('ord-status').value  = 'em_andamento';
   document.getElementById('ord-desc').value    = '';
-  document.getElementById('ord-previsao').value = tipo === 'orcamento' ? dataISOEmDias(15) : '';
+  document.getElementById('ord-previsao').value = '';
   ['ord-veiculo-marca','ord-veiculo-modelo','ord-veiculo-placa'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ord-veiculo-ano').value = '';
   document.getElementById('ord-veiculo-km').value  = '';
@@ -1553,38 +1166,43 @@ async function editarOrdem(id) {
   const o = CACHE.ordens.find(x => x.id === id);
   if (!o) return;
 
-  // Preenche os campos do modal imediatamente
+  // 1. Preenche campos do formulário imediatamente
   document.getElementById('ordem-id').value    = o.id;
   document.getElementById('ordem-tipo').value  = 'ordem';
   document.getElementById('modal-ordem-title').textContent = 'Editar Ordem de Serviço';
   configurarTextosModalOrdem('ordem');
-  document.getElementById('campos-veiculo').style.display  = '';
+  document.getElementById('campos-veiculo').style.display = '';
+
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
   sel.value = o.cliente_id;
-  document.getElementById('ord-data').value     = o.data_entrada;
-  preencherStatus('ordem', o.status || 'em_andamento');
-  document.getElementById('ord-desc').value     = o.descricao || '';
-  document.getElementById('ord-previsao').value = o.data_previsao || '';
-  document.getElementById('ord-veiculo-marca').value  = o.veiculo_marca || '';
-  document.getElementById('ord-veiculo-modelo').value = o.veiculo_modelo || '';
-  document.getElementById('ord-veiculo-ano').value    = o.veiculo_ano || '';
-  document.getElementById('ord-veiculo-placa').value  = o.veiculo_placa || '';
-  document.getElementById('ord-veiculo-km').value     = o.veiculo_km || '';
 
-  // Abre o modal imediatamente com linha vazia (UX melhor — não trava esperando o banco)
+  document.getElementById('ord-data').value          = o.data_entrada || '';
+  preencherStatus('ordem', o.status || 'em_andamento');
+  document.getElementById('ord-desc').value          = o.descricao || '';
+  document.getElementById('ord-previsao').value      = o.data_previsao || '';
+  document.getElementById('ord-veiculo-marca').value  = o.veiculo_marca  || '';
+  document.getElementById('ord-veiculo-modelo').value = o.veiculo_modelo || '';
+  document.getElementById('ord-veiculo-ano').value    = o.veiculo_ano    || '';
+  document.getElementById('ord-veiculo-placa').value  = o.veiculo_placa  || '';
+  document.getElementById('ord-veiculo-km').value     = o.veiculo_km     || '';
+
+  // 2. Abre o modal com linha placeholder enquanto busca os itens no banco
   itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
   renderItemRows();
   calcTotal();
   document.getElementById('modal-ordem').classList.add('open');
 
-  // Busca os itens DIRETAMENTE do banco — não depende do cache (que pode vir vazio por RLS no join)
+  // 3. Busca os itens DIRETAMENTE no banco — ignora o cache do join
+  //    Isso corrige o bug onde os itens somem ao editar, causado por
+  //    o join de carregarTudo retornar array vazio por RLS ou timing.
   showLoading();
   try {
     const { data: itens, error } = await sb
       .from('ordem_servico_itens')
       .select('*')
-      .eq('ordem_servico_id', id);
+      .eq('ordem_servico_id', id)
+      .order('id');
 
     if (error) {
       toast('Erro ao carregar itens da OS: ' + error.message, 'error');
@@ -1593,10 +1211,10 @@ async function editarOrdem(id) {
 
     itemRows = (itens && itens.length > 0)
       ? itens.map(i => ({
-          id: i.id,
+          id:                 i.id,
           produto_servico_id: i.produto_servico_id,
-          quantidade: Number(i.quantidade),
-          preco_unitario: Number(i.preco_unitario)
+          quantidade:         Number(i.quantidade),
+          preco_unitario:     Number(i.preco_unitario),
         }))
       : [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
 
@@ -1613,13 +1231,12 @@ function editarOrcamento(id) {
   document.getElementById('ordem-id').value   = o.id;
   document.getElementById('ordem-tipo').value = 'orcamento';
   document.getElementById('modal-ordem-title').textContent = 'Editar Orçamento';
-  configurarTextosModalOrdem('orcamento');
   document.getElementById('campos-veiculo').style.display  = 'none';
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
   sel.value = o.cliente_id;
   document.getElementById('ord-data').value     = o.criado_em?.split('T')[0] || '';
-  preencherStatus('orcamento', o.status || 'pendente');
+  document.getElementById('ord-status').value   = o.status;
   document.getElementById('ord-desc').value     = o.descricao || '';
   document.getElementById('ord-previsao').value = o.validade || '';
   itemRows = (o.orcamento_itens || []).map(i => ({
@@ -1677,38 +1294,31 @@ async function salvarOrdem() {
 
   if (tipo === 'orcamento') {
     const payload = {
-  cliente_id:  clienteId,
-  usuario_id:  currentUser.id,
-  descricao:   document.getElementById('ord-desc').value.trim() || null,
-  status:      statusOrcamentoSeguro(document.getElementById('ord-status').value),
-  validade:    document.getElementById('ord-previsao').value || null,
-  valor_total: valorTotal,
-};
-if (!idEdit) {
-  payload.numero = gerarNumero('ORC', CACHE.orcamentos);
-}
-let orcId;
-if (idEdit) {
-  const { error } = await sb.from('orcamentos').update(payload).eq('id', idEdit);
-  if (error) { hideLoading(); toast('Erro ao atualizar orçamento: ' + error.message, 'error'); return; }
-  const { error: errDel } = await sb.from('orcamento_itens').delete().eq('orcamento_id', idEdit);
-  if (errDel) { hideLoading(); toast('Erro ao limpar itens: ' + errDel.message, 'error'); return; }
-  orcId = idEdit;
-} else {
-  const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
-  if (error) { hideLoading(); toast('Erro ao criar orçamento: ' + error.message, 'error'); return; }
-  orcId = data.id;
-}
-if (!orcId) { hideLoading(); toast('Falha ao obter ID do orçamento.', 'error'); return; }
-const itensPayload = itensValidos.map(i => ({
-  orcamento_id:        orcId,
-  produto_servico_id:  i.produto_servico_id,
-  quantidade:          i.quantidade,
-  preco_unitario:      i.preco_unitario,
-  desconto:            0
-}));
-const { error: errItens } = await sb.from('orcamento_itens').insert(itensPayload);
-if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.message, 'error'); }
+      cliente_id:  clienteId,
+      usuario_id:  currentUser.id,
+      descricao:   document.getElementById('ord-desc').value.trim() || null,
+      status:      document.getElementById('ord-status').value,
+      validade:    document.getElementById('ord-previsao').value || null,
+      valor_total: valorTotal,
+      numero:      idEdit ? undefined : gerarNumero('ORC', CACHE.orcamentos),
+    };
+    if (payload.numero === undefined) delete payload.numero;
+    let orcId;
+    if (idEdit) {
+      const { error } = await sb.from('orcamentos').update(payload).eq('id', idEdit);
+      if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
+      await sb.from('orcamento_itens').delete().eq('orcamento_id', idEdit);
+      orcId = idEdit;
+    } else {
+      const { data, error } = await sb.from('orcamentos').insert(payload).select().single();
+      if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
+      orcId = data.id;
+    }
+    const itensPayload = itensValidos.map(i => ({
+      orcamento_id: orcId, produto_servico_id: i.produto_servico_id,
+      quantidade: i.quantidade, preco_unitario: i.preco_unitario, desconto: 0
+    }));
+    await sb.from('orcamento_itens').insert(itensPayload);
     toast(idEdit ? 'Orçamento atualizado!' : 'Orçamento criado!');
     fecharModal('modal-ordem');
     await recarregarOrcamentos();
@@ -1743,74 +1353,27 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
       osId = data.id;
     }
     const itensPayload = itensValidos.map(i => ({
-      ordem_servico_id:   osId,
-      produto_servico_id: i.produto_servico_id,
-      quantidade:         i.quantidade,
-      preco_unitario:     i.preco_unitario,
-      desconto:           0
-      // subtotal: NÃO enviar — é coluna GENERATED ALWAYS pelo banco
+      ordem_servico_id: osId, produto_servico_id: i.produto_servico_id,
+      quantidade: i.quantidade, preco_unitario: i.preco_unitario, desconto: 0
     }));
-    const { data: itensSalvos, error: errItensOS } = await sb
-      .from('ordem_servico_itens')
-      .insert(itensPayload)
-      .select();
-    if (errItensOS) {
-      hideLoading();
-      toast('Erro ao salvar itens da OS: ' + errItensOS.message, 'error');
-      console.error('[salvarOrdem] Erro itens:', errItensOS);
-      return;
-    }
-    console.log('[salvarOrdem] Itens salvos:', itensSalvos?.length, 'item(ns)');
-
-    if (idEdit) {
-      const { data: notasAtualizadas, error: errNotaOS } = await sb.from('notas_fiscais')
-        .update({ valor_subtotal: valorTotal, valor_total: valorTotal, valor_desconto: 0 })
-        .eq('ordem_servico_id', idEdit)
-        .select('id');
-      if (errNotaOS) {
-        toast('OS atualizada, mas houve erro ao atualizar a nota fiscal: ' + errNotaOS.message, 'error');
-      } else if ((notasAtualizadas || []).length > 0) {
-        toast('Nota fiscal vinculada também foi atualizada!', 'info');
-      }
-    }
-
+    await sb.from('ordem_servico_itens').insert(itensPayload);
     toast(idEdit ? 'OS atualizada!' : 'OS criada!');
     fecharModal('modal-ordem');
     await recarregarOrdens();
-    await recarregarNotas();
     renderOrdens();
   }
   hideLoading();
 }
 
 async function excluirOrdem(id) {
-  if (!confirm('Excluir esta ordem de serviço? Itens, movimentações de estoque e notas fiscais vinculadas também serão removidos.')) return;
+  if (!confirm('Excluir esta ordem de serviço?')) return;
   showLoading();
-  try {
-    // 1º — Remove a nota fiscal vinculada (se houver)
-    const { error: errNota } = await sb.from('notas_fiscais').delete().eq('ordem_servico_id', id);
-    if (errNota) { toast('Erro ao remover nota fiscal: ' + errNota.message, 'error'); return; }
-
-    // 2º — Remove as movimentações de estoque vinculadas à OS
-    const { error: errMov } = await sb.from('movimentacoes_estoque').delete().eq('ordem_servico_id', id);
-    if (errMov) { toast('Erro ao remover movimentações de estoque: ' + errMov.message, 'error'); return; }
-
-    // 3º — Remove os itens da OS
-    const { error: errItens } = await sb.from('ordem_servico_itens').delete().eq('ordem_servico_id', id);
-    if (errItens) { toast('Erro ao remover itens da OS: ' + errItens.message, 'error'); return; }
-
-    // 4º — Remove a OS em si
-    const { error } = await sb.from('ordens_servico').delete().eq('id', id);
-    if (error) { toast('Erro ao excluir OS: ' + error.message, 'error'); return; }
-
-    toast('Ordem removida com sucesso.');
-    await recarregarProdutos();
-    await recarregarOrdens();
-    await recarregarNotas();
-    renderOrdens();
-  } finally {
-    hideLoading();
-  }
+  const { error } = await sb.from('ordens_servico').delete().eq('id', id);
+  hideLoading();
+  if (error) { toast('Erro ao excluir: ' + error.message, 'error'); return; }
+  toast('Ordem removida.');
+  await recarregarOrdens();
+  renderOrdens();
 }
 
 async function recarregarOrdens() {
@@ -1839,109 +1402,12 @@ function renderOrcamentos() {
         <td>${statusBadge(o.status)}</td>
         <td>${fmt(o.valor_total)}</td>
         <td>
-          <button class="btn btn-primary btn-xs" onclick="verOrcamento('${o.id}')">Visualizar</button>
-          <button class="btn btn-red btn-xs" onclick="exportarOrcamentoPDFById('${o.id}')">PDF</button>
           <button class="btn btn-outline btn-xs" onclick="editarOrcamento('${o.id}')">Editar</button>
           <button class="btn btn-success btn-xs" onclick="converterOrcamento('${o.id}')">→ OS</button>
           <button class="btn btn-danger btn-xs" onclick="excluirOrcamento('${o.id}')">Excluir</button>
         </td>
       </tr>`).join('')
     : '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-gray)">Nenhum orçamento encontrado.</td></tr>';
-}
-
-function clienteDoOrcamento(orc) {
-  return CACHE.clientes.find(c => c.id === orc.cliente_id) || orc.clientes || {};
-}
-
-function itensDoOrcamento(orc) {
-  return (orc.orcamento_itens || []).map(item => {
-    const produto = CACHE.produtos.find(p => p.id === item.produto_servico_id) || {};
-    return {
-      nome: produto.nome || '—',
-      quantidade: Number(item.quantidade || 0),
-      preco_unitario: Number(item.preco_unitario || 0),
-    };
-  });
-}
-
-function termosOrcamento() {
-  return [
-    'Valores válidos até a data de validade indicada neste orçamento.',
-    'Peças e serviços adicionais identificados durante a execução serão orçados separadamente.',
-    'A aprovação do orçamento autoriza o início dos serviços descritos.',
-  ];
-}
-
-function verOrcamento(id) {
-  const orc = CACHE.orcamentos.find(o => o.id === id);
-  if (!orc) { toast('Orçamento não encontrado.', 'error'); return; }
-  mostrarOrcamento(orc);
-}
-
-function mostrarOrcamento(orc) {
-  const cliente = clienteDoOrcamento(orc);
-  const itens = itensDoOrcamento(orc);
-  documentoAtual = { tipo: 'orcamento', id: orc.id };
-  document.getElementById('modal-documento-title').textContent = 'Orçamento';
-
-  document.getElementById('invoice-content').innerHTML = `
-    <div class="invoice-preview" id="orcamento-para-imprimir">
-      <div class="invoice-header-bar">
-        <div class="invoice-company">
-          <h2>ALFA & ÔMEGA</h2>
-          <p>AUTO MECÂNICA</p>
-          <p style="margin-top:8px;font-size:12px;opacity:.6">Arcoverde — Pernambuco</p>
-        </div>
-        <div class="invoice-num">
-          <small>ORÇAMENTO</small>
-          <div class="num">${orc.numero}</div>
-          <small>Status: ${statusLabel(orc.status)}</small>
-        </div>
-      </div>
-      <div class="invoice-body">
-        <div class="invoice-info-grid">
-          <div class="invoice-info">
-            <h4>Cliente</h4>
-            <p><strong>${cliente.nome || '—'}</strong><br>
-            CPF/CNPJ: ${cliente.cpf_cnpj || '—'}<br>
-            Tel: ${cliente.telefone || '—'}<br>
-            ${cliente.logradouro ? cliente.logradouro + (cliente.cidade ? ', ' + cliente.cidade : '') + (cliente.estado ? '/' + cliente.estado : '') : ''}</p>
-          </div>
-          <div class="invoice-info">
-            <h4>Dados do Orçamento</h4>
-            <p>Emissão: <strong>${fmtDate(orc.criado_em)}</strong><br>
-            Validade: <strong>${orc.validade ? fmtDate(orc.validade) : '—'}</strong><br>
-            Status: ${statusBadge(orc.status)}<br>
-            ${orc.descricao ? 'Observação: ' + orc.descricao : ''}</p>
-          </div>
-        </div>
-        <table class="invoice-table">
-          <thead><tr><th>Produto / Serviço</th><th style="text-align:center">Qtd</th><th style="text-align:right">Vlr. Unit.</th><th style="text-align:right">Total</th></tr></thead>
-          <tbody>${itens.length ? itens.map(item => `
-            <tr>
-              <td>${item.nome}</td>
-              <td style="text-align:center">${item.quantidade}</td>
-              <td style="text-align:right">${fmt(item.preco_unitario)}</td>
-              <td style="text-align:right">${fmt(item.quantidade * item.preco_unitario)}</td>
-            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:#8a96b0">Itens não disponíveis</td></tr>'}</tbody>
-        </table>
-        <div class="invoice-total">
-          <div class="invoice-total-box">
-            <div class="total-label">TOTAL DO ORÇAMENTO</div>
-            <div class="total-value">${fmt(orc.valor_total)}</div>
-          </div>
-        </div>
-        <div class="invoice-footer" style="text-align:left">
-          <p><strong>Condições comerciais</strong></p>
-          ${termosOrcamento().map(t => `<p>${t}</p>`).join('')}
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px;text-align:center;color:#1a2240">
-            <div style="border-top:1px solid #c5cde0;padding-top:8px">Responsável Alfa & Ômega</div>
-            <div style="border-top:1px solid #c5cde0;padding-top:8px">Aprovação do Cliente</div>
-          </div>
-        </div>
-      </div>
-    </div>`;
-  document.getElementById('modal-nota').classList.add('open');
 }
 
 async function excluirOrcamento(id) {
@@ -1998,118 +1464,6 @@ async function recarregarOrcamentos() {
     .select('*, clientes(nome), orcamento_itens(*)')
     .order('criado_em', { ascending: false });
   CACHE.orcamentos = data || [];
-}
-
-// ══════════════════════════════════════════════════════════════
-// FINANCEIRO
-// ══════════════════════════════════════════════════════════════
-function pagamentosDaNota(notaId) {
-  return CACHE.pagamentos.filter(p => p.nota_fiscal_id === notaId);
-}
-
-function resumoFinanceiroNota(nota) {
-  const pago = pagamentosDaNota(nota.id).reduce((s, p) => s + Number(p.valor || 0), 0);
-  const total = Number(nota.valor_total || 0);
-  const saldo = Math.max(total - pago, 0);
-  let status = 'em_aberto';
-  if (nota.cancelada) status = 'cancelada';
-  else if (pago >= total && total > 0) status = 'pago';
-  else if (pago > 0) status = 'parcial';
-  return { total, pago, saldo, status };
-}
-
-function renderFinanceiro() {
-  const busca = (document.getElementById('busca-financeiro')?.value || '').toLowerCase();
-  const notas = CACHE.notas.filter(n => !n.cancelada);
-  const linhas = notas
-    .map(n => ({ nota: n, resumo: resumoFinanceiroNota(n) }))
-    .filter(({ nota, resumo }) =>
-      (nota.numero_nf || '').toLowerCase().includes(busca) ||
-      (nota.clientes?.nome || '').toLowerCase().includes(busca) ||
-      statusLabel(resumo.status).toLowerCase().includes(busca)
-    );
-
-  const totalEmitido = notas.reduce((s, n) => s + Number(n.valor_total || 0), 0);
-  const totalPago = notas.reduce((s, n) => s + resumoFinanceiroNota(n).pago, 0);
-  const totalAberto = Math.max(totalEmitido - totalPago, 0);
-  const emAberto = notas.filter(n => resumoFinanceiroNota(n).saldo > 0).length;
-
-  document.getElementById('financeiro-stats').innerHTML = `
-    <div class="stat-card"><div class="stat-label">Emitido</div><div class="stat-value">${fmt(totalEmitido)}</div><div class="stat-sub">notas ativas</div></div>
-    <div class="stat-card"><div class="stat-label">Recebido</div><div class="stat-value">${fmt(totalPago)}</div><div class="stat-sub">pagamentos registrados</div></div>
-    <div class="stat-card"><div class="stat-label">A Receber</div><div class="stat-value">${fmt(totalAberto)}</div><div class="stat-sub">${emAberto} documento(s)</div></div>
-    <div class="stat-card"><div class="stat-label">Pagamentos</div><div class="stat-value">${CACHE.pagamentos.length}</div><div class="stat-sub">lançamentos</div></div>`;
-
-  document.getElementById('tbody-financeiro').innerHTML = linhas.length
-    ? linhas.map(({ nota, resumo }) => `
-      <tr>
-        <td><strong>${nota.numero_nf}</strong></td>
-        <td>${nota.clientes?.nome || '—'}</td>
-        <td>${fmtDate(nota.data_emissao)}</td>
-        <td>${fmt(resumo.total)}</td>
-        <td>${fmt(resumo.pago)}</td>
-        <td>${fmt(resumo.saldo)}</td>
-        <td>${statusBadge(resumo.status)}</td>
-        <td>
-          <button class="btn btn-success btn-xs" onclick="abrirModalPagamento('${nota.id}')">Pagamento</button>
-          <button class="btn btn-outline btn-xs" onclick="verNota('${nota.id}')">Nota</button>
-        </td>
-      </tr>`).join('')
-    : '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-gray)">Nenhuma nota financeira encontrada.</td></tr>';
-}
-
-function abrirModalPagamento(notaId) {
-  const nota = CACHE.notas.find(n => n.id === notaId);
-  if (!nota) { toast('Nota não encontrada.', 'error'); return; }
-  const resumo = resumoFinanceiroNota(nota);
-  document.getElementById('pag-nota-id').value = nota.id;
-  document.getElementById('pag-data').value = new Date().toISOString().split('T')[0];
-  document.getElementById('pag-valor').value = resumo.saldo.toFixed(2);
-  document.getElementById('pag-metodo').value = 'pix';
-  document.getElementById('pag-obs').value = '';
-  document.getElementById('pag-resumo').innerHTML = `
-    <p><strong>${nota.numero_nf}</strong> — ${nota.clientes?.nome || 'Cliente não informado'}</p>
-    <p class="text-muted">Total: ${fmt(resumo.total)} | Pago: ${fmt(resumo.pago)} | Saldo: ${fmt(resumo.saldo)}</p>`;
-  document.getElementById('modal-pagamento').classList.add('open');
-}
-
-async function salvarPagamento() {
-  const notaId = document.getElementById('pag-nota-id').value;
-  const nota = CACHE.notas.find(n => n.id === notaId);
-  if (!nota) { toast('Nota não encontrada.', 'error'); return; }
-
-  const valor = parseFloat(document.getElementById('pag-valor').value);
-  if (!valor || valor <= 0) { toast('Informe um valor válido.', 'error'); return; }
-
-  showLoading();
-  const payload = {
-    nota_fiscal_id: nota.id,
-    ordem_servico_id: nota.ordem_servico_id || null,
-    cliente_id: nota.cliente_id || null,
-    usuario_id: currentUser?.id || null,
-    data_pagamento: document.getElementById('pag-data').value || new Date().toISOString().split('T')[0],
-    valor,
-    metodo: document.getElementById('pag-metodo').value,
-    observacao: document.getElementById('pag-obs').value.trim() || null,
-  };
-  const { error } = await sb.from('pagamentos').insert(payload);
-  hideLoading();
-
-  if (error) {
-    toast('Erro ao registrar pagamento. Aplique o arquivo supabase_melhorias.sql no Supabase. Detalhe: ' + error.message, 'error');
-    return;
-  }
-
-  toast('Pagamento registrado!');
-  fecharModal('modal-pagamento');
-  await recarregarPagamentos();
-  renderFinanceiro();
-}
-
-async function recarregarPagamentos() {
-  const { data, error } = await sb.from('pagamentos').select('*').order('data_pagamento', { ascending: false });
-  if (error) { console.warn('[pagamentos] tabela indisponível:', error.message); CACHE.pagamentos = []; return; }
-  CACHE.pagamentos = data || [];
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2175,8 +1529,6 @@ async function verNota(notaId) {
 function mostrarNota(nota, ordem) {
   const cliente = nota.clientes || {};
   const os      = nota.ordens_servico || ordem || {};
-  documentoAtual = { tipo: 'nota', id: nota.id };
-  document.getElementById('modal-documento-title').textContent = 'Nota Fiscal';
   const itens   = (ordem?.ordem_servico_itens || []).map(item => {
     const p = CACHE.produtos.find(x => x.id === item.produto_servico_id) || { nome: '—' };
     return `<tr>
@@ -2193,7 +1545,7 @@ function mostrarNota(nota, ordem) {
         <div class="invoice-company">
           <h2>ALFA & ÔMEGA</h2>
           <p>AUTO MECÂNICA</p>
-          <p style="margin-top:8px;font-size:12px;opacity:.6">Arcoverde — Pernambuco</p>
+          <p style="margin-top:8px;font-size:12px;opacity:.6">Maceió — Alagoas</p>
         </div>
         <div class="invoice-num">
           <small>NOTA FISCAL INTERNA</small>
@@ -2245,504 +1597,12 @@ async function recarregarNotas() {
 }
 
 // ══════════════════════════════════════════════════════════════
-// HELPERS DE PDF
+// PDF
 // ══════════════════════════════════════════════════════════════
-function sanitize(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/[áàãâä]/gi, a => /[A-Z]/.test(a) ? 'A' : 'a')
-    .replace(/[éèêë]/gi,  a => /[A-Z]/.test(a) ? 'E' : 'e')
-    .replace(/[íìîï]/gi,  a => /[A-Z]/.test(a) ? 'I' : 'i')
-    .replace(/[óòõôö]/gi, a => /[A-Z]/.test(a) ? 'O' : 'o')
-    .replace(/[úùûü]/gi,  a => /[A-Z]/.test(a) ? 'U' : 'u')
-    .replace(/[ç]/gi,     a => /[A-Z]/.test(a) ? 'C' : 'c')
-    .replace(/[ñ]/gi,     a => /[A-Z]/.test(a) ? 'N' : 'n');
-}
-
-function gerarPDFNota(nota, itens, ordem) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const PW = 210, M = 15, RM = 195;
-
-  const cliente = nota.clientes || {};
-  const os      = nota.ordens_servico || ordem || {};
-  const numNF   = nota.numero_nf || 'NF';
-
-  // ── PALETA ────────────────────────────────────────────────
-  const NAVY   = [13,  27,  62];
-  const NAVY2  = [22,  34,  71];
-  const WHITE  = [255, 255, 255];
-  const RED    = [192, 57,  43];
-  const RED_B  = [231, 76,  60];
-  const GRAY   = [140, 150, 176];
-  const DARK   = [26,  34,  64];
-  const LGRAY  = [232, 236, 245];
-  const BGINFO = [248, 249, 253];
-
-  let y = 0;
-
-  // ══════════════════════════════════════════════════════════
-  // CABEÇALHO
-  // ══════════════════════════════════════════════════════════
-
-  // Fundo principal navy
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, PW, 50, 'F');
-
-  // Faixa lateral vermelha (acento visual esquerdo)
-  doc.setFillColor(...RED);
-  doc.rect(0, 0, 5, 50, 'F');
-
-  // Faixa vermelha inferior
-  doc.setFillColor(...RED);
-  doc.rect(0, 47, PW, 3, 'F');
-
-  // Selo circular (simula engrenagem/logo)
-  doc.setFillColor(...NAVY2);
-  doc.circle(30, 25, 13, 'F');
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(1.5);
-  doc.circle(30, 25, 13, 'S');
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('A&O', 30, 23, { align: 'center' });
-  doc.setFontSize(5.5);
-  doc.setTextColor(...GRAY);
-  doc.text('AUTO', 30, 27, { align: 'center' });
-  doc.text('MECANICA', 30, 30, { align: 'center' });
-
-  // Nome da empresa
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(19);
-  doc.text('ALFA & OMEGA', 48, 19);
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(180, 195, 220);
-  doc.text('AUTO MECANICA  |  Arcoverde - Pernambuco', 48, 27);
-
-  doc.setFontSize(8);
-  doc.setTextColor(...GRAY);
-  doc.text('NOTA FISCAL INTERNA', 48, 35);
-
-  // Número NF — canto direito
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(20);
-  doc.setTextColor(...RED_B);
-  doc.text(sanitize(numNF), RM, 20, { align: 'right' });
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(180, 195, 220);
-  doc.text(`OS: ${sanitize(os.numero || '—')}`, RM, 29, { align: 'right' });
-  doc.text(`Emissao: ${fmtDate(nota.data_emissao)}`, RM, 37, { align: 'right' });
-
-  y = 58;
-
-  // ══════════════════════════════════════════════════════════
-  // BLOCOS DE INFORMAÇÃO
-  // ══════════════════════════════════════════════════════════
-  const colL = M, colR = 111;
-  const boxH = 42;
-
-  // Caixas de fundo
-  doc.setFillColor(...BGINFO);
-  doc.roundedRect(colL, y, 90, boxH, 3, 3, 'F');
-  doc.roundedRect(colR, y, 84, boxH, 3, 3, 'F');
-
-  // Borda superior colorida nos boxes
-  doc.setFillColor(...NAVY);
-  doc.rect(colL, y, 90, 2, 'F');
-  doc.rect(colR, y, 84, 2, 'F');
-
-  // Label CLIENTE
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...GRAY);
-  doc.text('CLIENTE', colL + 4, y + 8);
-
-  // Dados do cliente
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
-  doc.setTextColor(...DARK);
-  doc.text(sanitize(cliente.nome || '—').substring(0, 32), colL + 4, y + 16);
-
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...DARK);
-  doc.text(`CPF/CNPJ: ${sanitize(cliente.cpf_cnpj || '—')}`, colL + 4, y + 23);
-  doc.text(`Tel: ${sanitize(cliente.telefone || '—')}`, colL + 4, y + 29);
-
-  if (cliente.logradouro) {
-    const end = [cliente.logradouro, cliente.cidade, cliente.estado]
-      .filter(Boolean).join(', ');
-    doc.text(sanitize(end).substring(0, 38), colL + 4, y + 35);
-  }
-
-  // Label DADOS DA NOTA
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...GRAY);
-  doc.text('DADOS DA NOTA', colR + 4, y + 8);
-
-  // Dados da nota
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...DARK);
-  doc.text(`Ordem de Servico: ${sanitize(os.numero || '—')}`, colR + 4, y + 16);
-
-  if (os.veiculo_modelo) {
-    const vei = [os.veiculo_marca, os.veiculo_modelo, os.veiculo_placa]
-      .filter(Boolean).join(' ');
-    doc.text(`Veiculo: ${sanitize(vei).substring(0, 28)}`, colR + 4, y + 23);
-  }
-
-  const statusMap = {
-    em_andamento: 'Em andamento', aguardando_peca: 'Aguard. peca',
-    concluido: 'Concluido', entregue: 'Entregue',
-    cancelado: 'Cancelado', pendente: 'Pendente'
-  };
-  if (os.status) {
-    doc.text(
-      `Status OS: ${sanitize(statusMap[os.status] || os.status)}`,
-      colR + 4, y + (os.veiculo_modelo ? 30 : 23)
-    );
-  }
-
-  y += boxH + 10;
-
-  // ══════════════════════════════════════════════════════════
-  // TABELA DE ITENS
-  // ══════════════════════════════════════════════════════════
-
-  // Cabeçalho da tabela
-  doc.setFillColor(...NAVY);
-  doc.rect(0, y - 5, PW, 11, 'F');
-
-  // Linha vermelha no topo do cabeçalho
-  doc.setFillColor(...RED);
-  doc.rect(0, y - 5, PW, 1.5, 'F');
-
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('PRODUTO / SERVICO', M + 2, y + 1);
-  doc.text('QTD',   128, y + 1, { align: 'center' });
-  doc.text('UNIT.',  158, y + 1, { align: 'right' });
-  doc.text('TOTAL',  RM,  y + 1, { align: 'right' });
-
-  y += 11;
-
-  // Linhas dos itens
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  const linhaItens = Array.isArray(itens) ? itens : [];
-
-  linhaItens.forEach((item, idx) => {
-    // Zebrado
-    if (idx % 2 === 0) {
-      doc.setFillColor(...BGINFO);
-      doc.rect(0, y - 4.5, PW, 9, 'F');
-    }
-
-    doc.setTextColor(...DARK);
-    doc.setFont('helvetica', idx % 2 === 0 ? 'normal' : 'normal');
-    doc.text(sanitize(item.nome || '—').substring(0, 52), M + 2, y);
-    doc.text(String(Number(item.quantidade)), 128, y, { align: 'center' });
-    doc.text(sanitize(fmt(item.preco_unitario)), 158, y, { align: 'right' });
-
-    const subtotal = Number(item.quantidade) * Number(item.preco_unitario);
-    doc.setFont('helvetica', 'bold');
-    doc.text(sanitize(fmt(subtotal)), RM, y, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-
-    y += 9;
-
-    doc.setDrawColor(...LGRAY);
-    doc.setLineWidth(0.25);
-    doc.line(M, y - 3.5, RM, y - 3.5);
-  });
-
-  if (linhaItens.length === 0) {
-    doc.setTextColor(...GRAY);
-    doc.setFontSize(9);
-    doc.text('Nenhum item registrado nesta nota.', 105, y + 4, { align: 'center' });
-    y += 12;
-  }
-
-  // ══════════════════════════════════════════════════════════
-  // CAIXA DO TOTAL
-  // ══════════════════════════════════════════════════════════
-  y += 8;
-
-  // Sombra/fundo decorativo
-  doc.setFillColor(220, 225, 240);
-  doc.roundedRect(132, y + 1, 65, 22, 3, 3, 'F');
-
-  // Caixa principal
-  doc.setFillColor(...NAVY);
-  doc.roundedRect(131, y, 65, 22, 3, 3, 'F');
-
-  // Label
-  doc.setTextColor(...GRAY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.text('VALOR TOTAL', 163.5, y + 7, { align: 'center' });
-
-  // Linha divisória interna
-  doc.setDrawColor(30, 50, 90);
-  doc.setLineWidth(0.4);
-  doc.line(135, y + 9, 193, y + 9);
-
-  // Valor
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(...RED_B);
-  doc.text(sanitize(fmt(nota.valor_total)), RM - 1, y + 18, { align: 'right' });
-
-  // ══════════════════════════════════════════════════════════
-  // RODAPÉ
-  // ══════════════════════════════════════════════════════════
-  y += 32;
-
-  // Linha vermelha
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(1);
-  doc.line(M, y, RM, y);
-
-  y += 6;
-
-  // Texto rodapé
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...DARK);
-  doc.text('Alfa & Omega Auto Mecanica', 105, y, { align: 'center' });
-
-  y += 5;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...GRAY);
-  doc.text(
-    'Documento interno. Nao possui validade fiscal como Nota Fiscal Eletronica (NF-e).',
-    105, y, { align: 'center' }
-  );
-
-  y += 5;
-  doc.text(
-    `Emitido em: ${fmtDate(nota.data_emissao)}  |  Sistema de Gestao v2.0  |  ${sanitize(numNF)}`,
-    105, y, { align: 'center' }
-  );
-
-  // ── SALVAR ────────────────────────────────────────────────
-  doc.save(`${numNF}.pdf`);
-}  
-
-function gerarPDFOrcamento(orc, itens) {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const PW = 210, M = 15, RM = 195;
-  const cliente = clienteDoOrcamento(orc);
-  const num = orc.numero || 'ORC';
-
-  const NAVY = [13, 27, 62];
-  const NAVY2 = [22, 34, 71];
-  const RED = [192, 57, 43];
-  const RED_B = [231, 76, 60];
-  const WHITE = [255, 255, 255];
-  const GRAY = [140, 150, 176];
-  const DARK = [26, 34, 64];
-  const LGRAY = [232, 236, 245];
-  const BGINFO = [248, 249, 253];
-
-  let y = 0;
-
-  doc.setFillColor(...NAVY);
-  doc.rect(0, 0, PW, 50, 'F');
-  doc.setFillColor(...RED);
-  doc.rect(0, 0, 5, 50, 'F');
-  doc.rect(0, 47, PW, 3, 'F');
-
-  doc.setFillColor(...NAVY2);
-  doc.circle(30, 25, 13, 'F');
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(1.5);
-  doc.circle(30, 25, 13, 'S');
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('A&O', 30, 23, { align: 'center' });
-  doc.setFontSize(5.5);
-  doc.setTextColor(...GRAY);
-  doc.text('AUTO', 30, 27, { align: 'center' });
-  doc.text('MECANICA', 30, 30, { align: 'center' });
-
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(19);
-  doc.text('ALFA & OMEGA', 48, 19);
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(180, 195, 220);
-  doc.text('AUTO MECANICA  |  Arcoverde - Pernambuco', 48, 27);
-  doc.setFontSize(8);
-  doc.setTextColor(...GRAY);
-  doc.text('PROPOSTA COMERCIAL DE SERVICOS', 48, 35);
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(21);
-  doc.setTextColor(...RED_B);
-  doc.text(sanitize(num), RM, 20, { align: 'right' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(180, 195, 220);
-  doc.text('ORCAMENTO', RM, 29, { align: 'right' });
-  doc.text(`Validade: ${orc.validade ? fmtDate(orc.validade) : '—'}`, RM, 37, { align: 'right' });
-
-  y = 58;
-  const colL = M, colR = 111, boxH = 42;
-  doc.setFillColor(...BGINFO);
-  doc.roundedRect(colL, y, 90, boxH, 3, 3, 'F');
-  doc.roundedRect(colR, y, 84, boxH, 3, 3, 'F');
-  doc.setFillColor(...NAVY);
-  doc.rect(colL, y, 90, 2, 'F');
-  doc.rect(colR, y, 84, 2, 'F');
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...GRAY);
-  doc.text('CLIENTE', colL + 4, y + 8);
-  doc.setFontSize(10);
-  doc.setTextColor(...DARK);
-  doc.text(sanitize(cliente.nome || '—').substring(0, 32), colL + 4, y + 16);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.text(`CPF/CNPJ: ${sanitize(cliente.cpf_cnpj || '—')}`, colL + 4, y + 23);
-  doc.text(`Tel: ${sanitize(cliente.telefone || '—')}`, colL + 4, y + 29);
-  if (cliente.logradouro) {
-    const end = [cliente.logradouro, cliente.cidade, cliente.estado].filter(Boolean).join(', ');
-    doc.text(sanitize(end).substring(0, 38), colL + 4, y + 35);
-  }
-
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7.5);
-  doc.setTextColor(...GRAY);
-  doc.text('DADOS DO ORCAMENTO', colR + 4, y + 8);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8.5);
-  doc.setTextColor(...DARK);
-  doc.text(`Emissao: ${fmtDate(orc.criado_em)}`, colR + 4, y + 16);
-  doc.text(`Status: ${sanitize(statusLabel(orc.status))}`, colR + 4, y + 23);
-  if (orc.descricao) {
-    const obs = doc.splitTextToSize(`Obs.: ${sanitize(orc.descricao)}`, 74);
-    doc.text(obs.slice(0, 2), colR + 4, y + 30);
-  }
-
-  y += boxH + 10;
-  doc.setFillColor(...NAVY);
-  doc.rect(0, y - 5, PW, 11, 'F');
-  doc.setFillColor(...RED);
-  doc.rect(0, y - 5, PW, 1.5, 'F');
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8.5);
-  doc.text('PRODUTO / SERVICO', M + 2, y + 1);
-  doc.text('QTD', 128, y + 1, { align: 'center' });
-  doc.text('UNIT.', 158, y + 1, { align: 'right' });
-  doc.text('TOTAL', RM, y + 1, { align: 'right' });
-
-  y += 11;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9.5);
-  const linhaItens = Array.isArray(itens) ? itens : [];
-
-  linhaItens.forEach((item, idx) => {
-    if (y > 245) {
-      doc.addPage();
-      y = 22;
-    }
-    if (idx % 2 === 0) {
-      doc.setFillColor(...BGINFO);
-      doc.rect(0, y - 4.5, PW, 9, 'F');
-    }
-    doc.setTextColor(...DARK);
-    doc.text(sanitize(item.nome || '—').substring(0, 52), M + 2, y);
-    doc.text(String(Number(item.quantidade)), 128, y, { align: 'center' });
-    doc.text(sanitize(fmt(item.preco_unitario)), 158, y, { align: 'right' });
-    doc.setFont('helvetica', 'bold');
-    doc.text(sanitize(fmt(Number(item.quantidade) * Number(item.preco_unitario))), RM, y, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    y += 9;
-    doc.setDrawColor(...LGRAY);
-    doc.setLineWidth(0.25);
-    doc.line(M, y - 3.5, RM, y - 3.5);
-  });
-
-  if (linhaItens.length === 0) {
-    doc.setTextColor(...GRAY);
-    doc.text('Nenhum item registrado neste orcamento.', 105, y + 4, { align: 'center' });
-    y += 12;
-  }
-
-  y += 8;
-  doc.setFillColor(220, 225, 240);
-  doc.roundedRect(132, y + 1, 65, 22, 3, 3, 'F');
-  doc.setFillColor(...NAVY);
-  doc.roundedRect(131, y, 65, 22, 3, 3, 'F');
-  doc.setTextColor(...GRAY);
-  doc.setFontSize(7.5);
-  doc.text('TOTAL DO ORCAMENTO', 163.5, y + 7, { align: 'center' });
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(15);
-  doc.setTextColor(...RED_B);
-  doc.text(sanitize(fmt(orc.valor_total)), RM - 1, y + 18, { align: 'right' });
-
-  y += 34;
-  if (y > 224) {
-    doc.addPage();
-    y = 22;
-  }
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(1);
-  doc.line(M, y, RM, y);
-  y += 7;
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(8);
-  doc.setTextColor(...DARK);
-  doc.text('CONDICOES COMERCIAIS', M, y);
-  y += 6;
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(...DARK);
-  termosOrcamento().forEach(t => {
-    doc.text(`- ${sanitize(t)}`, M, y);
-    y += 5;
-  });
-
-  y += 18;
-  doc.setDrawColor(...LGRAY);
-  doc.line(M, y, 88, y);
-  doc.line(122, y, RM, y);
-  y += 5;
-  doc.setTextColor(...GRAY);
-  doc.text('Responsavel Alfa & Omega', 51.5, y, { align: 'center' });
-  doc.text('Aprovacao do Cliente', 158.5, y, { align: 'center' });
-
-  doc.save(`${sanitize(num)}.pdf`);
-}
-  
-// ══════════════════════════════════════════════════════════════
-// PDF / IMPRESSÃO
-// ══════════════════════════════════════════════════════════════
-function imprimirDocumento() {
-  const preview = document.querySelector('#invoice-content .invoice-preview');
-  if (!preview) { toast('Nenhum documento carregado.', 'error'); return; }
-
-  const conteudo = preview.innerHTML;
-  const titulo = document.getElementById('modal-documento-title')?.textContent || 'Documento';
+function imprimirNota() {
+  const conteudo = document.getElementById('nota-para-imprimir').innerHTML;
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title>
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nota Fiscal</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
   <style>
     body{font-family:'Barlow',sans-serif;background:#fff;color:#1a2240;margin:0;padding:20px}
@@ -2772,66 +1632,110 @@ function imprimirDocumento() {
   setTimeout(() => win.print(), 600);
 }
 
-function imprimirNota() { imprimirDocumento(); }
-
-function exportarDocumentoPDF() {
-  if (documentoAtual.tipo === 'orcamento') {
-    exportarOrcamentoPDFById(documentoAtual.id);
-    return;
-  }
-  exportarPDF();
-}
-
-// Chamado pelo botão "Exportar PDF" dentro do modal
 function exportarPDF() {
-  if (documentoAtual.tipo === 'orcamento') {
-    exportarOrcamentoPDFById(documentoAtual.id);
-    return;
-  }
+  const { jsPDF } = window.jspdf;
+  const doc     = new jsPDF('p', 'mm', 'a4');
+  const content = document.getElementById('nota-para-imprimir');
 
-  // Recupera a nota que está sendo exibida atualmente
-  const numEl = document.querySelector('#invoice-content .num');
-  if (!numEl) { toast('Nenhuma nota carregada.', 'error'); return; }
+  // Cabeçalho
+  doc.setFillColor(13, 27, 62);
+  doc.rect(0, 0, 210, 45, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(20);
+  doc.text('ALFA & OMEGA - AUTO MECANICA', 15, 18);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text('NOTA FISCAL INTERNA', 15, 27);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(231, 76, 60);
+  const numEl = content.querySelector('.num');
+  if (numEl) doc.text(numEl.textContent, 195, 20, { align: 'right' });
+  const osEl = content.querySelector('.invoice-num small:last-child');
+  if (osEl) { doc.setFontSize(10); doc.setTextColor(200,200,200); doc.text(osEl.textContent, 195, 30, { align: 'right' }); }
 
-  const numNF = numEl.textContent.trim();
-  const nota  = CACHE.notas.find(n => n.numero_nf === numNF);
-  if (!nota) { toast('Dados da nota nao encontrados.', 'error'); return; }
-
-  const ordem  = CACHE.ordens.find(o => o.id === nota.ordem_servico_id);
-  const itens  = (ordem?.ordem_servico_itens || []).map(item => {
-    const p = CACHE.produtos.find(x => x.id === item.produto_servico_id) || {};
-    return {
-      nome:            p.nome || '—',
-      quantidade:      item.quantidade,
-      preco_unitario:  item.preco_unitario,
-    };
+  // Info boxes
+  doc.setTextColor(50, 50, 50);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const infoEls = content.querySelectorAll('.invoice-info');
+  let y = 55;
+  infoEls.forEach((el, i) => {
+    const x = i === 0 ? 15 : 110;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.setTextColor(140, 150, 176);
+    doc.text((el.querySelector('h4')?.textContent || '').toUpperCase(), x, y);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(30, 30, 60);
+    const txt = (el.querySelector('p')?.innerText || el.querySelector('p')?.textContent || '').replace(/<[^>]+>/g, '');
+    const lines = txt.split('\n').filter(l => l.trim());
+    lines.forEach((line, li) => doc.text(line.trim().substring(0, 45), x, y + 6 + li * 5));
   });
 
-  gerarPDFNota(nota, itens, ordem);
+  // Tabela de itens
+  y = 112;
+  doc.setFillColor(13, 27, 62);
+  doc.rect(0, y - 6, 210, 10, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('PRODUTO / SERVICO', 15, y);
+  doc.text('QTD', 125, y);
+  doc.text('VLR. UNIT.', 150, y);
+  doc.text('TOTAL', 186, y, { align: 'right' });
+
+  y += 8;
+  const rows = content.querySelectorAll('tbody tr');
+  doc.setTextColor(30, 30, 60);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  rows.forEach(row => {
+    const cells = row.querySelectorAll('td');
+    if (cells.length >= 4) {
+      doc.text(cells[0].textContent.trim().substring(0, 38), 15, y);
+      doc.text(cells[1].textContent.trim(), 125, y);
+      doc.text(cells[2].textContent.trim(), 150, y);
+      doc.text(cells[3].textContent.trim(), 186, y, { align: 'right' });
+      y += 7;
+      doc.setDrawColor(232, 236, 245);
+      doc.line(15, y - 3, 195, y - 3);
+    }
+  });
+
+  // Total
+  y += 4;
+  doc.setFillColor(13, 27, 62);
+  doc.rect(130, y, 65, 18, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(8);
+  doc.text('VALOR TOTAL', 163, y + 6, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.setTextColor(231, 76, 60);
+  const totalEl = content.querySelector('.total-value');
+  if (totalEl) doc.text(totalEl.textContent, 192, y + 13, { align: 'right' });
+
+  // Rodapé
+  y += 28;
+  doc.setDrawColor(192, 57, 43);
+  doc.setLineWidth(0.8);
+  doc.line(15, y, 195, y);
+  doc.setTextColor(140, 150, 176);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Alfa & Omega Auto Mecanica — Documento interno. Nao tem validade fiscal como NF-e.', 105, y + 6, { align: 'center' });
+  doc.text('Sistema de Gestao v2.0', 105, y + 11, { align: 'center' });
+
+  const numNf = numEl?.textContent || 'nota-fiscal';
+  doc.save(`${numNf}.pdf`);
 }
 
-function exportarOrcamentoPDFById(orcamentoId) {
-  const orc = CACHE.orcamentos.find(o => o.id === orcamentoId);
-  if (!orc) { toast('Orçamento não encontrado.', 'error'); return; }
-  gerarPDFOrcamento(orc, itensDoOrcamento(orc));
-}
-
-// Chamado da listagem de notas (sem abrir o modal)
 async function exportarPDFById(notaId) {
-  const nota = CACHE.notas.find(n => n.id === notaId);
-  if (!nota) { toast('Nota nao encontrada.', 'error'); return; }
-
-  const ordem = CACHE.ordens.find(o => o.id === nota.ordem_servico_id);
-  const itens = (ordem?.ordem_servico_itens || []).map(item => {
-    const p = CACHE.produtos.find(x => x.id === item.produto_servico_id) || {};
-    return {
-      nome:           p.nome || '—',
-      quantidade:     item.quantidade,
-      preco_unitario: item.preco_unitario,
-    };
-  });
-
-  gerarPDFNota(nota, itens, ordem);
+  await verNota(notaId);
+  setTimeout(exportarPDF, 400);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2852,12 +1756,6 @@ async function gerarRelatorio() {
 
   const total      = (lista || []).reduce((s, o) => s + Number(o.valor_total), 0);
   const concluidas = (lista || []).filter(o => ['concluido', 'entregue'].includes(o.status)).length;
-  const notasPeriodo = CACHE.notas.filter(n => !n.cancelada && n.data_emissao >= ini && n.data_emissao <= fim);
-  const recebidoPeriodo = CACHE.pagamentos
-    .filter(p => p.data_pagamento >= ini && p.data_pagamento <= fim)
-    .reduce((s, p) => s + Number(p.valor || 0), 0);
-  const abertoPeriodo = notasPeriodo.reduce((s, n) => s + resumoFinanceiroNota(n).saldo, 0);
-  const ticketMedio = (lista || []).length ? total / (lista || []).length : 0;
 
   document.getElementById('rel-resumo').innerHTML = `
     <div class="section-title mb-16" style="font-size:17px">Resumo do Período</div>
@@ -2870,17 +1768,9 @@ async function gerarRelatorio() {
         <div style="font-size:12px;color:var(--text-gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Concluídas</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--success)">${concluidas}</div>
       </div>
-      <div style="background:var(--off-white);border-radius:8px;padding:16px;text-align:center">
-        <div style="font-size:12px;color:var(--text-gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Recebido</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--success)">${fmt(recebidoPeriodo)}</div>
-      </div>
-      <div style="background:var(--off-white);border-radius:8px;padding:16px;text-align:center">
-        <div style="font-size:12px;color:var(--text-gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A Receber</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--warning)">${fmt(abertoPeriodo)}</div>
-      </div>
       <div style="background:var(--navy);border-radius:8px;padding:16px;text-align:center;grid-column:1/-1">
-        <div style="font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento / Ticket médio</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#ffd16a">${fmt(total)} <span style="font-size:18px;color:rgba(255,255,255,.75)">| ${fmt(ticketMedio)}</span></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#ffd16a">${fmt(total)}</div>
       </div>
     </div>`;
 
