@@ -710,11 +710,18 @@ async function doLogin() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
   if (error) {
-    errEl.textContent = 'E-mail ou senha incorretos.';
-    btn.disabled = false;
-    btn.textContent = 'ENTRAR';
-    return;
-  }
+      // Mensagens mais específicas por tipo de erro
+      const mensagens = {
+        'Invalid login credentials': 'E-mail ou senha incorretos.',
+        'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
+        'Too many requests': 'Muitas tentativas. Aguarde alguns minutos.',
+      };
+      errEl.textContent = mensagens[error.message] || 'Erro ao entrar: ' + error.message;
+      console.error('[Auth] Erro de login:', error);
+      btn.disabled = false;
+      btn.textContent = 'ENTRAR';
+      return;
+    }
   _appIniciado = true;
   await iniciarApp(data.user);
 }
