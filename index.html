@@ -1638,7 +1638,7 @@ async function editarOrdem(id) {
   sel.value = o.cliente_id;
 
   document.getElementById('ord-data').value           = o.data_entrada || '';
-  document.getElementById('ord-status').value         = o.status || 'em_andamento';
+  preencherStatus('ordem', o.status || 'em_andamento'); // ← substitui a linha anterior
   document.getElementById('ord-desc').value           = o.descricao || '';
   document.getElementById('ord-previsao').value       = o.data_previsao || '';
   document.getElementById('ord-veiculo-marca').value  = o.veiculo_marca  || '';
