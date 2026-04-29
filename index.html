@@ -984,32 +984,29 @@ async function carregarTudo() {
   showLoading();
 
   try {
-    const safe = async (query, nome) => {
-  try {
-    // Cria a promise de timeout separada
-    const timeoutPromise = new Promise(resolve =>
-      setTimeout(() => resolve({ data: null, error: null, __timeout: true }), DATA_LOAD_TIMEOUT_MS)
-    );
-
-    // Corre a query contra o timeout
-    const resposta = await Promise.race([query, timeoutPromise]);
-
-    if (resposta.__timeout) {
-      console.warn(`[carregarTudo] Timeout em "${nome}" após ${DATA_LOAD_TIMEOUT_MS / 1000}s`);
-      return { data: [], timeout: true };
-    }
-
-    const { data, error } = resposta;
-    if (error) {
-      console.warn(`[carregarTudo] Erro em "${nome}":`, error.message);
-      return { data: [], timeout: false };
-    }
-    return { data: data || [], timeout: false };
-  } catch (e) {
-    console.warn(`[carregarTudo] Exceção em "${nome}":`, e);
-    return { data: [], timeout: false };
-  }
-};
+    const safe = async (queryPromise, nome) => {
+      try {
+        const timeoutPromise = new Promise(resolve =>
+          setTimeout(() => resolve({ data: null, error: null, __timeout: true }), DATA_LOAD_TIMEOUT_MS)
+        );
+        // query corre diretamente — sem wrapper nem .finally() que causavam condição de corrida
+        const resposta = await Promise.race([queryPromise, timeoutPromise]);
+        if (resposta.__timeout) {
+          console.warn(`[carregarTudo] Timeout em "${nome}" após ${DATA_LOAD_TIMEOUT_MS / 1000}s`);
+          return { data: [], timeout: true };
+        }
+        const { data, error } = resposta;
+        if (error) {
+          console.warn(`[carregarTudo] Erro em "${nome}":`, error.message);
+          return { data: [], timeout: false };
+        }
+        console.log(`[carregarTudo] "${nome}": ${(data || []).length} registros`);
+        return { data: data || [], timeout: false };
+      } catch (e) {
+        console.warn(`[carregarTudo] Exceção em "${nome}":`, e);
+        return { data: [], timeout: false };
+      }
+    };
 
     const resultados = await Promise.all([
       safe(sb.from('clientes').select('*').eq('ativo', true).order('nome'), 'clientes'),
@@ -1575,36 +1572,34 @@ async function editarOrdem(id) {
   document.getElementById('ord-veiculo-placa').value  = o.veiculo_placa || '';
   document.getElementById('ord-veiculo-km').value     = o.veiculo_km || '';
 
-  // Mostra o modal antes de buscar os itens (UX melhor)
+  // Abre o modal imediatamente com linha vazia (UX melhor — não trava esperando o banco)
   itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
   renderItemRows();
   calcTotal();
   document.getElementById('modal-ordem').classList.add('open');
 
-  // Busca os itens DIRETAMENTE do banco (não depende do cache)
+  // Busca os itens DIRETAMENTE do banco — não depende do cache (que pode vir vazio por RLS no join)
   showLoading();
   try {
     const { data: itens, error } = await sb
       .from('ordem_servico_itens')
       .select('*')
-      .eq('ordem_servico_id', id);
+      .eq('ordem_servico_id', id)
+      .order('criado_em', { ascending: true });
 
     if (error) {
       toast('Erro ao carregar itens da OS: ' + error.message, 'error');
       return;
     }
 
-    if (itens && itens.length > 0) {
-      itemRows = itens.map(i => ({
-        id: i.id,
-        produto_servico_id: i.produto_servico_id,
-        quantidade: Number(i.quantidade),
-        preco_unitario: Number(i.preco_unitario)
-      }));
-    } else {
-      // Sem itens no banco — mantém a linha vazia para o usuário adicionar
-      itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
-    }
+    itemRows = (itens && itens.length > 0)
+      ? itens.map(i => ({
+          id: i.id,
+          produto_servico_id: i.produto_servico_id,
+          quantidade: Number(i.quantidade),
+          preco_unitario: Number(i.preco_unitario)
+        }))
+      : [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
 
     renderItemRows();
     calcTotal();
@@ -1754,19 +1749,19 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
       quantidade:         i.quantidade,
       preco_unitario:     i.preco_unitario,
       desconto:           0
-      // subtotal é calculado automaticamente pelo banco — não enviar
+      // subtotal: NÃO enviar — é coluna GENERATED ALWAYS pelo banco
     }));
-const { data: itensSalvos, error: errItensOS } = await sb
-  .from('ordem_servico_itens')
-  .insert(itensPayload)
-  .select();
-if (errItensOS) {
-  hideLoading();
-  toast('Erro ao salvar itens da OS: ' + errItensOS.message, 'error');
-  console.error('[salvarOrdem] Erro itens:', errItensOS);
-  return;
-}
-console.log('[salvarOrdem] Itens salvos:', itensSalvos);
+    const { data: itensSalvos, error: errItensOS } = await sb
+      .from('ordem_servico_itens')
+      .insert(itensPayload)
+      .select();
+    if (errItensOS) {
+      hideLoading();
+      toast('Erro ao salvar itens da OS: ' + errItensOS.message, 'error');
+      console.error('[salvarOrdem] Erro itens:', errItensOS);
+      return;
+    }
+    console.log('[salvarOrdem] Itens salvos:', itensSalvos?.length, 'item(ns)');
 
     if (idEdit) {
       const { data: notasAtualizadas, error: errNotaOS } = await sb.from('notas_fiscais')
