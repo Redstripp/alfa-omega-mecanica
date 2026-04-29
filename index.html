@@ -1217,7 +1217,7 @@ function editarOrcamento(id) {
   sel.value = o.cliente_id;
   document.getElementById('ord-data').value     = o.criado_em?.split('T')[0] || '';
   document.getElementById('ord-status').value   = o.status;
-  const sel = document.getElementById('ord-status');
+  const sel2 = document.getElementById('ord-status');
   sel.innerHTML = `
     <option value="pendente">Pendente</option>
     <option value="aprovado">Aprovado</option>
