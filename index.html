@@ -1749,13 +1749,13 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
       osId = data.id;
     }
     const itensPayload = itensValidos.map(i => ({
-  ordem_servico_id:   osId,
-  produto_servico_id: i.produto_servico_id,
-  quantidade:         i.quantidade,
-  preco_unitario:     i.preco_unitario,
-  desconto:           0,
-  subtotal:           i.quantidade * i.preco_unitario  // ← coluna obrigatória na tabela
-}));
+      ordem_servico_id:   osId,
+      produto_servico_id: i.produto_servico_id,
+      quantidade:         i.quantidade,
+      preco_unitario:     i.preco_unitario,
+      desconto:           0
+      // subtotal é calculado automaticamente pelo banco — não enviar
+    }));
 const { data: itensSalvos, error: errItensOS } = await sb
   .from('ordem_servico_itens')
   .insert(itensPayload)
