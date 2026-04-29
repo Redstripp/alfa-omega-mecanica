@@ -285,6 +285,10 @@ tbody tr:last-child { border-bottom: none; }
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
         Notas Fiscais
       </div>
+      <div class="nav-item" onclick="navigate('financeiro')">
+        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+        Financeiro
+      </div>
       <div class="nav-section">Relatórios</div>
       <div class="nav-item" onclick="navigate('relatorios')">
         <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
@@ -423,6 +427,22 @@ tbody tr:last-child { border-bottom: none; }
           <table>
             <thead><tr><th>Nº NF</th><th>OS Ref.</th><th>Cliente</th><th>Emissão</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="tbody-notas"><tr><td colspan="7" class="text-muted" style="padding:30px;text-align:center">Carregando...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- FINANCEIRO -->
+    <div class="page" id="page-financeiro">
+      <div class="search-bar">
+        <input type="text" placeholder="Buscar cliente, NF ou status..." id="busca-financeiro" oninput="renderFinanceiro()">
+      </div>
+      <div class="stats-grid" id="financeiro-stats"></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>NF</th><th>Cliente</th><th>Emissão</th><th>Total</th><th>Pago</th><th>Saldo</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tbody-financeiro"><tr><td colspan="8" class="text-muted" style="padding:30px;text-align:center">Carregando...</td></tr></tbody>
           </table>
         </div>
       </div>
@@ -615,6 +635,80 @@ tbody tr:last-child { border-bottom: none; }
   </div>
 </div>
 
+<!-- Pagamento -->
+<div class="modal-overlay" id="modal-pagamento">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div class="modal-title">Registrar Pagamento</div>
+      <button class="modal-close" onclick="fecharModal('modal-pagamento')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="pag-nota-id">
+      <div class="mb-16" id="pag-resumo"></div>
+      <div class="form-grid mb-16">
+        <div class="form-group"><label>Data</label><input type="date" id="pag-data"></div>
+        <div class="form-group"><label>Valor</label><input type="number" id="pag-valor" step="0.01" min="0"></div>
+        <div class="form-group full"><label>Forma de Pagamento</label>
+          <select id="pag-metodo">
+            <option value="dinheiro">Dinheiro</option>
+            <option value="pix">Pix</option>
+            <option value="cartao_credito">Cartão de crédito</option>
+            <option value="cartao_debito">Cartão de débito</option>
+            <option value="transferencia">Transferência</option>
+            <option value="boleto">Boleto</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+        <div class="form-group full"><label>Observação</label><textarea id="pag-obs" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal('modal-pagamento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarPagamento()">Salvar Pagamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Movimentação de Estoque -->
+<div class="modal-overlay" id="modal-estoque">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-estoque-title">Movimentar Estoque</div>
+      <button class="modal-close" onclick="fecharModal('modal-estoque')">×</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="mov-produto-id">
+      <div class="mb-16" id="mov-resumo"></div>
+      <div class="form-grid mb-16">
+        <div class="form-group"><label>Tipo</label>
+          <select id="mov-tipo" onchange="atualizarTextoMovimento()">
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+            <option value="ajuste">Ajuste de saldo</option>
+          </select>
+        </div>
+        <div class="form-group"><label id="mov-qtd-label">Quantidade</label><input type="number" id="mov-quantidade" step="0.001" min="0"></div>
+        <div class="form-group full"><label>Observação</label><textarea id="mov-obs" rows="2"></textarea></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal('modal-estoque')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarMovimentacaoEstoque()">Salvar Movimento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Histórico de Estoque -->
+<div class="modal-overlay" id="modal-hist-estoque">
+  <div class="modal" style="max-width:760px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-hist-estoque-title">Histórico de Estoque</div>
+      <button class="modal-close" onclick="fecharModal('modal-hist-estoque')">×</button>
+    </div>
+    <div class="modal-body" id="modal-hist-estoque-body"></div>
+  </div>
+</div>
+
 <script>
 // ══════════════════════════════════════════════════════════════
 // CONFIGURAÇÃO DO SUPABASE
@@ -661,7 +755,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL (cache em memória — substituiu o localStorage)
 // ══════════════════════════════════════════════════════════════
-let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [] };
+let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [], pagamentos: [], movimentacoes: [] };
 let currentUser = null;
 let itemRows = [];
 let documentoAtual = { tipo: null, id: null };
@@ -718,6 +812,12 @@ function statusBadge(s) {
     aprovado:       ['badge-success', 'Aprovado'],
     recusado:       ['badge-danger',  'Recusado'],
     expirado:       ['badge-gray',    'Expirado'],
+    em_aberto:      ['badge-warning', 'Em aberto'],
+    parcial:        ['badge-info',    'Parcial'],
+    pago:           ['badge-success', 'Pago'],
+    entrada:        ['badge-success', 'Entrada'],
+    saida:          ['badge-warning', 'Saída'],
+    ajuste:         ['badge-info',    'Ajuste'],
   };
   const [cls, label] = map[s] || ['badge-gray', s];
   return `<span class="badge ${cls}">${label}</span>`;
@@ -733,6 +833,12 @@ function statusLabel(s) {
     aprovado: 'Aprovado',
     recusado: 'Recusado',
     expirado: 'Expirado',
+    em_aberto: 'Em aberto',
+    parcial: 'Parcial',
+    pago: 'Pago',
+    entrada: 'Entrada',
+    saida: 'Saída',
+    ajuste: 'Ajuste',
   };
   return map[s] || s || '—';
 }
@@ -780,7 +886,7 @@ async function doLogin() {
 
 async function doLogout() {
   await sb.auth.signOut();
-  CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [] };
+  CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [], pagamentos: [], movimentacoes: [] };
   currentUser = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('auth-screen').style.display = 'flex';
@@ -914,9 +1020,11 @@ async function carregarTudo() {
       safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
       safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
       safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
-      safe(sb.from('notas_fiscais').select('*, clientes(nome), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
+      safe(sb.from('notas_fiscais').select('*, clientes(nome, cpf_cnpj, telefone), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
+      safe(sb.from('pagamentos').select('*').order('data_pagamento', { ascending: false }), 'pagamentos'),
+      safe(sb.from('movimentacoes_estoque').select('*, produtos_servicos(nome, unidade_medida)').order('criado_em', { ascending: false }).limit(200), 'movimentacoes_estoque'),
     ]);
-    const [clientes, produtos, ordens, orcamentos, notas] = resultados.map(r => r.data);
+    const [clientes, produtos, ordens, orcamentos, notas, pagamentos, movimentacoes] = resultados.map(r => r.data);
     const timeouts = resultados.filter(r => r.timeout).length;
 
     CACHE.clientes   = clientes;
@@ -924,6 +1032,8 @@ async function carregarTudo() {
     CACHE.ordens     = ordens;
     CACHE.orcamentos = orcamentos;
     CACHE.notas      = notas;
+    CACHE.pagamentos = pagamentos;
+    CACHE.movimentacoes = movimentacoes;
 
     const vazios = [
       clientes.length === 0 && 'Clientes',
@@ -953,7 +1063,7 @@ async function carregarTudo() {
 const pageTitles = {
   dashboard: 'Dashboard', clientes: 'Clientes', produtos: 'Produtos & Serviços',
   ordens: 'Ordens de Serviço', orcamentos: 'Orçamentos',
-  notas: 'Notas Fiscais', relatorios: 'Relatórios'
+  notas: 'Notas Fiscais', financeiro: 'Financeiro', relatorios: 'Relatórios'
 };
 
 function navigate(page) {
@@ -966,7 +1076,8 @@ function navigate(page) {
   document.getElementById('page-title').textContent = pageTitles[page] || page;
   const renders = {
     dashboard: renderDashboard, clientes: renderClientes, produtos: renderProdutos,
-    ordens: renderOrdens, orcamentos: renderOrcamentos, notas: renderNotas, relatorios: () => {}
+    ordens: renderOrdens, orcamentos: renderOrcamentos, notas: renderNotas,
+    financeiro: renderFinanceiro, relatorios: () => {}
   };
   if (renders[page]) renders[page]();
 }
@@ -1162,6 +1273,9 @@ function renderProdutos() {
         <td>${p.tipo === 'produto' ? `<span class="badge ${p.estoque_atual <= p.estoque_minimo && p.estoque_minimo > 0 ? 'badge-danger' : 'badge-success'}">${p.estoque_atual} ${p.unidade_medida}</span>` : '—'}</td>
         <td>${p.tipo === 'produto' ? p.estoque_minimo : '—'}</td>
         <td>
+          ${p.tipo === 'produto' ? `<button class="btn btn-success btn-xs" onclick="abrirMovimentacaoEstoque('${p.id}','entrada')">Entrada</button>
+          <button class="btn btn-warning btn-xs" onclick="abrirMovimentacaoEstoque('${p.id}','saida')">Saída</button>
+          <button class="btn btn-outline btn-xs" onclick="verHistoricoEstoque('${p.id}')">Histórico</button>` : ''}
           <button class="btn btn-outline btn-xs" onclick="editarProduto('${p.id}')">Editar</button>
           <button class="btn btn-danger btn-xs" onclick="excluirProduto('${p.id}')">Excluir</button>
         </td>
@@ -1252,6 +1366,101 @@ async function excluirProduto(id) {
 async function recarregarProdutos() {
   const { data } = await sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome');
   CACHE.produtos = data || [];
+}
+
+function abrirMovimentacaoEstoque(produtoId, tipo = 'entrada') {
+  const p = CACHE.produtos.find(x => x.id === produtoId);
+  if (!p || p.tipo !== 'produto') { toast('Produto não encontrado.', 'error'); return; }
+  document.getElementById('mov-produto-id').value = p.id;
+  document.getElementById('mov-tipo').value = tipo;
+  document.getElementById('mov-quantidade').value = '';
+  document.getElementById('mov-obs').value = '';
+  document.getElementById('modal-estoque-title').textContent = 'Movimentar Estoque — ' + p.nome;
+  document.getElementById('mov-resumo').innerHTML = `
+    <p><strong>${p.nome}</strong></p>
+    <p class="text-muted">Saldo atual: ${p.estoque_atual || 0} ${p.unidade_medida || 'un'} | Mínimo: ${p.estoque_minimo || 0}</p>`;
+  atualizarTextoMovimento();
+  document.getElementById('modal-estoque').classList.add('open');
+}
+
+function atualizarTextoMovimento() {
+  const tipo = document.getElementById('mov-tipo')?.value || 'entrada';
+  document.getElementById('mov-qtd-label').textContent = tipo === 'ajuste' ? 'Novo saldo' : 'Quantidade';
+}
+
+async function salvarMovimentacaoEstoque() {
+  const produtoId = document.getElementById('mov-produto-id').value;
+  const produto = CACHE.produtos.find(p => p.id === produtoId);
+  if (!produto) { toast('Produto não encontrado.', 'error'); return; }
+
+  const tipo = document.getElementById('mov-tipo').value;
+  const quantidade = parseFloat(document.getElementById('mov-quantidade').value);
+  const observacao = document.getElementById('mov-obs').value.trim() || null;
+  if (isNaN(quantidade) || quantidade < 0) { toast('Informe uma quantidade válida.', 'error'); return; }
+
+  showLoading();
+  const { error: rpcError } = await sb.rpc('registrar_movimentacao_estoque', {
+    p_produto_id: produtoId,
+    p_tipo: tipo,
+    p_quantidade: quantidade,
+    p_observacao: observacao,
+  });
+
+  if (rpcError) {
+    console.warn('[estoque] RPC indisponível, tentando atualização simples:', rpcError.message);
+    const atual = Number(produto.estoque_atual || 0);
+    const novoEstoque = tipo === 'entrada' ? atual + quantidade : tipo === 'saida' ? atual - quantidade : quantidade;
+    if (novoEstoque < 0) {
+      hideLoading();
+      toast('Estoque insuficiente para esta saída.', 'error');
+      return;
+    }
+
+    const { error: updError } = await sb.from('produtos_servicos').update({ estoque_atual: novoEstoque }).eq('id', produtoId);
+    if (updError) {
+      hideLoading();
+      toast('Erro ao atualizar estoque: ' + updError.message, 'error');
+      return;
+    }
+    toast('Estoque atualizado. Para histórico completo, aplique o supabase_melhorias.sql.', 'info');
+  } else {
+    toast('Movimentação registrada!');
+  }
+
+  hideLoading();
+  fecharModal('modal-estoque');
+  await recarregarProdutos();
+  await recarregarMovimentacoesEstoque();
+  renderProdutos();
+}
+
+function verHistoricoEstoque(produtoId) {
+  const p = CACHE.produtos.find(x => x.id === produtoId);
+  if (!p) return;
+  const lista = CACHE.movimentacoes.filter(m => m.produto_servico_id === produtoId);
+  document.getElementById('modal-hist-estoque-title').textContent = 'Histórico — ' + p.nome;
+  document.getElementById('modal-hist-estoque-body').innerHTML = lista.length
+    ? `<table><thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Antes</th><th>Depois</th><th>Obs.</th></tr></thead><tbody>
+      ${lista.map(m => `<tr>
+        <td>${fmtDate(m.criado_em)}</td>
+        <td>${statusBadge(m.tipo)}</td>
+        <td>${Number(m.quantidade || 0)} ${p.unidade_medida || 'un'}</td>
+        <td>${m.estoque_anterior ?? '—'}</td>
+        <td>${m.estoque_posterior ?? '—'}</td>
+        <td>${m.observacao || '—'}</td>
+      </tr>`).join('')}
+      </tbody></table>`
+    : '<p class="text-muted">Nenhuma movimentação registrada. Aplique o arquivo supabase_melhorias.sql para habilitar histórico completo.</p>';
+  document.getElementById('modal-hist-estoque').classList.add('open');
+}
+
+async function recarregarMovimentacoesEstoque() {
+  const { data, error } = await sb.from('movimentacoes_estoque')
+    .select('*, produtos_servicos(nome, unidade_medida)')
+    .order('criado_em', { ascending: false })
+    .limit(200);
+  if (error) { console.warn('[estoque] histórico indisponível:', error.message); CACHE.movimentacoes = []; return; }
+  CACHE.movimentacoes = data || [];
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -1757,6 +1966,118 @@ async function recarregarOrcamentos() {
     .select('*, clientes(nome), orcamento_itens(*)')
     .order('criado_em', { ascending: false });
   CACHE.orcamentos = data || [];
+}
+
+// ══════════════════════════════════════════════════════════════
+// FINANCEIRO
+// ══════════════════════════════════════════════════════════════
+function pagamentosDaNota(notaId) {
+  return CACHE.pagamentos.filter(p => p.nota_fiscal_id === notaId);
+}
+
+function resumoFinanceiroNota(nota) {
+  const pago = pagamentosDaNota(nota.id).reduce((s, p) => s + Number(p.valor || 0), 0);
+  const total = Number(nota.valor_total || 0);
+  const saldo = Math.max(total - pago, 0);
+  let status = 'em_aberto';
+  if (nota.cancelada) status = 'cancelada';
+  else if (pago >= total && total > 0) status = 'pago';
+  else if (pago > 0) status = 'parcial';
+  return { total, pago, saldo, status };
+}
+
+function renderFinanceiro() {
+  const busca = (document.getElementById('busca-financeiro')?.value || '').toLowerCase();
+  const notas = CACHE.notas.filter(n => !n.cancelada);
+  const linhas = notas
+    .map(n => ({ nota: n, resumo: resumoFinanceiroNota(n) }))
+    .filter(({ nota, resumo }) =>
+      (nota.numero_nf || '').toLowerCase().includes(busca) ||
+      (nota.clientes?.nome || '').toLowerCase().includes(busca) ||
+      statusLabel(resumo.status).toLowerCase().includes(busca)
+    );
+
+  const totalEmitido = notas.reduce((s, n) => s + Number(n.valor_total || 0), 0);
+  const totalPago = notas.reduce((s, n) => s + resumoFinanceiroNota(n).pago, 0);
+  const totalAberto = Math.max(totalEmitido - totalPago, 0);
+  const emAberto = notas.filter(n => resumoFinanceiroNota(n).saldo > 0).length;
+
+  document.getElementById('financeiro-stats').innerHTML = `
+    <div class="stat-card"><div class="stat-label">Emitido</div><div class="stat-value">${fmt(totalEmitido)}</div><div class="stat-sub">notas ativas</div></div>
+    <div class="stat-card"><div class="stat-label">Recebido</div><div class="stat-value">${fmt(totalPago)}</div><div class="stat-sub">pagamentos registrados</div></div>
+    <div class="stat-card"><div class="stat-label">A Receber</div><div class="stat-value">${fmt(totalAberto)}</div><div class="stat-sub">${emAberto} documento(s)</div></div>
+    <div class="stat-card"><div class="stat-label">Pagamentos</div><div class="stat-value">${CACHE.pagamentos.length}</div><div class="stat-sub">lançamentos</div></div>`;
+
+  document.getElementById('tbody-financeiro').innerHTML = linhas.length
+    ? linhas.map(({ nota, resumo }) => `
+      <tr>
+        <td><strong>${nota.numero_nf}</strong></td>
+        <td>${nota.clientes?.nome || '—'}</td>
+        <td>${fmtDate(nota.data_emissao)}</td>
+        <td>${fmt(resumo.total)}</td>
+        <td>${fmt(resumo.pago)}</td>
+        <td>${fmt(resumo.saldo)}</td>
+        <td>${statusBadge(resumo.status)}</td>
+        <td>
+          <button class="btn btn-success btn-xs" onclick="abrirModalPagamento('${nota.id}')">Pagamento</button>
+          <button class="btn btn-outline btn-xs" onclick="verNota('${nota.id}')">Nota</button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-gray)">Nenhuma nota financeira encontrada.</td></tr>';
+}
+
+function abrirModalPagamento(notaId) {
+  const nota = CACHE.notas.find(n => n.id === notaId);
+  if (!nota) { toast('Nota não encontrada.', 'error'); return; }
+  const resumo = resumoFinanceiroNota(nota);
+  document.getElementById('pag-nota-id').value = nota.id;
+  document.getElementById('pag-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('pag-valor').value = resumo.saldo.toFixed(2);
+  document.getElementById('pag-metodo').value = 'pix';
+  document.getElementById('pag-obs').value = '';
+  document.getElementById('pag-resumo').innerHTML = `
+    <p><strong>${nota.numero_nf}</strong> — ${nota.clientes?.nome || 'Cliente não informado'}</p>
+    <p class="text-muted">Total: ${fmt(resumo.total)} | Pago: ${fmt(resumo.pago)} | Saldo: ${fmt(resumo.saldo)}</p>`;
+  document.getElementById('modal-pagamento').classList.add('open');
+}
+
+async function salvarPagamento() {
+  const notaId = document.getElementById('pag-nota-id').value;
+  const nota = CACHE.notas.find(n => n.id === notaId);
+  if (!nota) { toast('Nota não encontrada.', 'error'); return; }
+
+  const valor = parseFloat(document.getElementById('pag-valor').value);
+  if (!valor || valor <= 0) { toast('Informe um valor válido.', 'error'); return; }
+
+  showLoading();
+  const payload = {
+    nota_fiscal_id: nota.id,
+    ordem_servico_id: nota.ordem_servico_id || null,
+    cliente_id: nota.cliente_id || null,
+    usuario_id: currentUser?.id || null,
+    data_pagamento: document.getElementById('pag-data').value || new Date().toISOString().split('T')[0],
+    valor,
+    metodo: document.getElementById('pag-metodo').value,
+    observacao: document.getElementById('pag-obs').value.trim() || null,
+  };
+  const { error } = await sb.from('pagamentos').insert(payload);
+  hideLoading();
+
+  if (error) {
+    toast('Erro ao registrar pagamento. Aplique o arquivo supabase_melhorias.sql no Supabase. Detalhe: ' + error.message, 'error');
+    return;
+  }
+
+  toast('Pagamento registrado!');
+  fecharModal('modal-pagamento');
+  await recarregarPagamentos();
+  renderFinanceiro();
+}
+
+async function recarregarPagamentos() {
+  const { data, error } = await sb.from('pagamentos').select('*').order('data_pagamento', { ascending: false });
+  if (error) { console.warn('[pagamentos] tabela indisponível:', error.message); CACHE.pagamentos = []; return; }
+  CACHE.pagamentos = data || [];
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -2499,6 +2820,12 @@ async function gerarRelatorio() {
 
   const total      = (lista || []).reduce((s, o) => s + Number(o.valor_total), 0);
   const concluidas = (lista || []).filter(o => ['concluido', 'entregue'].includes(o.status)).length;
+  const notasPeriodo = CACHE.notas.filter(n => !n.cancelada && n.data_emissao >= ini && n.data_emissao <= fim);
+  const recebidoPeriodo = CACHE.pagamentos
+    .filter(p => p.data_pagamento >= ini && p.data_pagamento <= fim)
+    .reduce((s, p) => s + Number(p.valor || 0), 0);
+  const abertoPeriodo = notasPeriodo.reduce((s, n) => s + resumoFinanceiroNota(n).saldo, 0);
+  const ticketMedio = (lista || []).length ? total / (lista || []).length : 0;
 
   document.getElementById('rel-resumo').innerHTML = `
     <div class="section-title mb-16" style="font-size:17px">Resumo do Período</div>
@@ -2511,9 +2838,17 @@ async function gerarRelatorio() {
         <div style="font-size:12px;color:var(--text-gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Concluídas</div>
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--success)">${concluidas}</div>
       </div>
+      <div style="background:var(--off-white);border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:12px;color:var(--text-gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Recebido</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--success)">${fmt(recebidoPeriodo)}</div>
+      </div>
+      <div style="background:var(--off-white);border-radius:8px;padding:16px;text-align:center">
+        <div style="font-size:12px;color:var(--text-gray);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">A Receber</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:700;color:var(--warning)">${fmt(abertoPeriodo)}</div>
+      </div>
       <div style="background:var(--navy);border-radius:8px;padding:16px;text-align:center;grid-column:1/-1">
-        <div style="font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento</div>
-        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#ffd16a">${fmt(total)}</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Faturamento / Ticket médio</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;color:#ffd16a">${fmt(total)} <span style="font-size:18px;color:rgba(255,255,255,.75)">| ${fmt(ticketMedio)}</span></div>
       </div>
     </div>`;
 
