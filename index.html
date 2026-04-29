@@ -1995,7 +1995,6 @@ async function converterOrcamento(id) {
       toast('Erro ao copiar itens: ' + errItens.message, 'error');
       console.error('[converter] Erro itens:', errItens);
     }
-    await sb.from('ordem_servico_itens').insert(itens);
   }
 
   await sb.from('orcamentos').update({ status: 'aprovado' }).eq('id', id);
