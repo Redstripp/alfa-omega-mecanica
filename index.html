@@ -1974,12 +1974,17 @@ async function converterOrcamento(id) {
 
   if (orc.orcamento_itens?.length) {
     const itens = orc.orcamento_itens.map(i => ({
-      ordem_servico_id: os.id,
+      ordem_servico_id:   os.id,
       produto_servico_id: i.produto_servico_id,
-      quantidade: i.quantidade,
-      preco_unitario: i.preco_unitario,
-      desconto: i.desconto || 0
+      quantidade:         Number(i.quantidade),
+      preco_unitario:     Number(i.preco_unitario),
+      desconto:           Number(i.desconto || 0),
     }));
+    const { error: errItens } = await sb.from('ordem_servico_itens').insert(itens);
+    if (errItens) {
+      toast('Erro ao copiar itens: ' + errItens.message, 'error');
+      console.error('[converter] Erro itens:', errItens);
+    }
     await sb.from('ordem_servico_itens').insert(itens);
   }
 
