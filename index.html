@@ -745,20 +745,20 @@ async function doLogin() {
   const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
 
   if (error) {
-      // Mensagens mais específicas por tipo de erro
-      const mensagens = {
-        'Invalid login credentials': 'E-mail ou senha incorretos.',
-        'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
-        'Too many requests': 'Muitas tentativas. Aguarde alguns minutos.',
-      };
-      errEl.textContent = mensagens[error.message] || 'Erro ao entrar: ' + error.message;
-      console.error('[Auth] Erro de login:', error);
-      btn.disabled = false;
-      btn.textContent = 'ENTRAR';
-      return;
-    }
-  _appIniciado = true;
-  await iniciarApp(data.user);
+    const mensagens = {
+      'Invalid login credentials': 'E-mail ou senha incorretos.',
+      'Email not confirmed': 'Confirme seu e-mail antes de entrar.',
+      'Too many requests': 'Muitas tentativas. Aguarde alguns minutos.',
+    };
+    errEl.textContent = mensagens[error.message] || 'Erro ao entrar: ' + error.message;
+    console.error('[Auth] Erro de login:', error);
+    btn.disabled = false;
+    btn.textContent = 'ENTRAR';
+    return;
+  }
+  // NÃO chama iniciarApp aqui — deixa o onAuthStateChange fazer isso
+  // O SIGNED_IN vai disparar automaticamente e chamar iniciarApp
+  console.log('[Auth] Login OK, aguardando onAuthStateChange...');
 }
 
 async function doLogout() {
@@ -775,19 +775,31 @@ async function doLogout() {
 async function iniciarApp(user) {
   currentUser = user;
 
-  // Busca nome do perfil — tolerante a falha (tabela pode não existir ou RLS bloquear)
-  let nome = user.email.split('@')[0];
-  try {
-    const { data: perfil, error } = await sb.from('perfis').select('nome').eq('id', user.id).maybeSingle();
-    if (!error && perfil?.nome) nome = perfil.nome;
-  } catch (_) { /* silencioso — continua com e-mail como nome */ }
-  const iniciais = nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
-
-  document.getElementById('user-name').textContent = nome;
-  document.getElementById('user-avatar').textContent = iniciais;
+  // Mostra o app IMEDIATAMENTE, sem esperar a query de perfil
   document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
+  // Usa o email como nome inicial enquanto carrega
+  let nome = user.email.split('@')[0];
+  document.getElementById('user-name').textContent = nome;
+  document.getElementById('user-avatar').textContent = nome.slice(0, 2).toUpperCase();
+
+  // Reseta o botão de login (caso venha do fluxo de login)
+  const btn = document.getElementById('btn-login');
+  if (btn) { btn.disabled = false; btn.textContent = 'ENTRAR'; }
+
+  // Busca perfil em paralelo com os dados — não bloqueia a tela
+  sb.from('perfis').select('nome').eq('id', user.id).maybeSingle()
+    .then(({ data: perfil }) => {
+      if (perfil?.nome) {
+        const iniciais = perfil.nome.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase();
+        document.getElementById('user-name').textContent = perfil.nome;
+        document.getElementById('user-avatar').textContent = iniciais;
+      }
+    })
+    .catch(() => { /* silencioso */ });
+
+  // Carrega dados e renderiza dashboard
   await carregarTudo();
   renderDashboard();
 }
@@ -796,17 +808,18 @@ async function iniciarApp(user) {
 // Flag para evitar disparo duplo do onAuthStateChange + doLogin
 let _appIniciado = false;
 sb.auth.onAuthStateChange(async (event, session) => {
-  // INITIAL_SESSION é disparado quando a página carrega e já existe sessão salva
-  // SIGNED_IN é disparado após um login bem-sucedido
+  console.log('[Auth Event]', event, '| Sessão:', !!session, '| Iniciado:', _appIniciado);
+
   if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && session && !_appIniciado) {
     _appIniciado = true;
     await iniciarApp(session.user);
   }
   if (event === 'SIGNED_OUT') {
     _appIniciado = false;
-    // Garante que a tela de login apareça
     document.getElementById('app').style.display = 'none';
     document.getElementById('auth-screen').style.display = 'flex';
+    document.getElementById('btn-login').disabled = false;
+    document.getElementById('btn-login').textContent = 'ENTRAR';
   }
 });
 
