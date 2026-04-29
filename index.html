@@ -1801,6 +1801,12 @@ async function excluirOrdem(id) {
     const { error } = await sb.from('ordens_servico').delete().eq('id', id);
     if (error) { toast('Erro ao excluir OS: ' + error.message, 'error'); return; }
 
+    // Reseta o orçamento vinculado para pendente
+    const osExcluida = CACHE.ordens.find(o => o.id === id);
+    if (osExcluida?.orcamento_id) {
+      await sb.from('orcamentos').update({ status: 'pendente' }).eq('id', osExcluida.orcamento_id);
+    }
+
     toast('Ordem removida com sucesso.');
     await recarregarProdutos();
     await recarregarOrdens();
