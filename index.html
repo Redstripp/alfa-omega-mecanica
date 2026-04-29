@@ -556,7 +556,7 @@ tbody tr:last-child { border-bottom: none; }
             <option value="cancelado">Cancelado</option>
           </select>
         </div>
-        <div class="form-group"><label>Previsão de Entrega</label><input type="date" id="ord-previsao"></div>
+        <div class="form-group"><label id="ord-previsao-label">Previsão de Entrega</label><input type="date" id="ord-previsao"></div>
       </div>
       <!-- Veículo -->
       <div id="campos-veiculo">
@@ -573,14 +573,14 @@ tbody tr:last-child { border-bottom: none; }
       <div class="divider"></div>
       <div class="form-group mb-16 full"><label>Descrição / Problema Relatado</label><textarea id="ord-desc" rows="2"></textarea></div>
       <!-- Itens -->
-      <div class="section-title mb-8" style="font-size:15px">Itens da Ordem</div>
+      <div class="section-title mb-8" id="ord-itens-title" style="font-size:15px">Itens da Ordem</div>
       <div class="order-items-editor">
         <div class="order-items-header"><div>Produto / Serviço</div><div>Qtd</div><div>Valor Unit.</div><div></div></div>
         <div id="order-items-rows"></div>
       </div>
       <button class="btn btn-outline btn-sm" onclick="addItemRow()">+ Adicionar Item</button>
       <div class="total-display" style="margin-top:16px">
-        <span class="label">Total da Ordem</span>
+        <span class="label" id="ord-total-label">Total da Ordem</span>
         <span class="value" id="ord-total">R$ 0,00</span>
       </div>
     </div>
@@ -595,7 +595,7 @@ tbody tr:last-child { border-bottom: none; }
 <div class="modal-overlay" id="modal-nota">
   <div class="modal" style="max-width:800px">
     <div class="modal-header">
-      <div class="modal-title">Nota Fiscal</div>
+      <div class="modal-title" id="modal-documento-title">Nota Fiscal</div>
       <button class="modal-close" onclick="fecharModal('modal-nota')">×</button>
     </div>
     <div class="modal-body">
@@ -603,11 +603,11 @@ tbody tr:last-child { border-bottom: none; }
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="fecharModal('modal-nota')">Fechar</button>
-      <button class="btn btn-primary" onclick="imprimirNota()">
+      <button class="btn btn-primary" onclick="imprimirDocumento()">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 8H5c-1.66 0-3 1.34-3 3v6h4v4h12v-4h4v-6c0-1.66-1.34-3-3-3zm-3 11H8v-5h8v5zm3-7c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm-1-9H6v4h12V3z"/></svg>
         Imprimir
       </button>
-      <button class="btn btn-red" onclick="exportarPDF()">
+      <button class="btn btn-red" id="btn-documento-pdf" onclick="exportarDocumentoPDF()">
         <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
         Exportar PDF
       </button>
@@ -664,6 +664,7 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 let CACHE = { clientes: [], produtos: [], ordens: [], orcamentos: [], notas: [] };
 let currentUser = null;
 let itemRows = [];
+let documentoAtual = { tipo: null, id: null };
 const DATA_LOAD_TIMEOUT_MS = 15000;
 
 // ══════════════════════════════════════════════════════════════
@@ -720,6 +721,20 @@ function statusBadge(s) {
   };
   const [cls, label] = map[s] || ['badge-gray', s];
   return `<span class="badge ${cls}">${label}</span>`;
+}
+function statusLabel(s) {
+  const map = {
+    em_andamento: 'Em andamento',
+    aguardando_peca: 'Aguardando peça',
+    concluido: 'Concluído',
+    entregue: 'Entregue',
+    cancelado: 'Cancelado',
+    pendente: 'Pendente',
+    aprovado: 'Aprovado',
+    recusado: 'Recusado',
+    expirado: 'Expirado',
+  };
+  return map[s] || s || '—';
 }
 function clienteNome(id) {
   const c = CACHE.clientes.find(x => x.id === id);
@@ -1294,6 +1309,19 @@ function statusOrcamentoSeguro(status) {
   return STATUS_ORCAMENTO_OPTIONS.some(([value]) => value === status) ? status : 'pendente';
 }
 
+function dataISOEmDias(dias) {
+  const data = new Date();
+  data.setDate(data.getDate() + dias);
+  return data.toISOString().split('T')[0];
+}
+
+function configurarTextosModalOrdem(tipo) {
+  const orcamento = tipo === 'orcamento';
+  document.getElementById('ord-previsao-label').textContent = orcamento ? 'Validade do Orçamento' : 'Previsão de Entrega';
+  document.getElementById('ord-itens-title').textContent = orcamento ? 'Itens do Orçamento' : 'Itens da Ordem';
+  document.getElementById('ord-total-label').textContent = orcamento ? 'Total do Orçamento' : 'Total da Ordem';
+}
+
 function abrirModalOrdem(tipo) {
   tipo = tipo || 'ordem';
   document.getElementById('ordem-id').value    = '';
@@ -1301,8 +1329,9 @@ function abrirModalOrdem(tipo) {
   document.getElementById('modal-ordem-title').textContent = tipo === 'orcamento' ? 'Novo Orçamento' : 'Nova Ordem de Serviço';
   document.getElementById('ord-data').value    = new Date().toISOString().split('T')[0];
   preencherStatus(tipo, tipo === 'orcamento' ? 'pendente' : 'em_andamento');
+  configurarTextosModalOrdem(tipo);
   document.getElementById('ord-desc').value    = '';
-  document.getElementById('ord-previsao').value = '';
+  document.getElementById('ord-previsao').value = tipo === 'orcamento' ? dataISOEmDias(15) : '';
   ['ord-veiculo-marca','ord-veiculo-modelo','ord-veiculo-placa'].forEach(id => document.getElementById(id).value = '');
   document.getElementById('ord-veiculo-ano').value = '';
   document.getElementById('ord-veiculo-km').value  = '';
@@ -1324,6 +1353,7 @@ function editarOrdem(id) {
   document.getElementById('ordem-id').value    = o.id;
   document.getElementById('ordem-tipo').value  = 'ordem';
   document.getElementById('modal-ordem-title').textContent = 'Editar Ordem de Serviço';
+  configurarTextosModalOrdem('ordem');
   document.getElementById('campos-veiculo').style.display  = '';
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
@@ -1355,6 +1385,7 @@ function editarOrcamento(id) {
   document.getElementById('ordem-id').value   = o.id;
   document.getElementById('ordem-tipo').value = 'orcamento';
   document.getElementById('modal-ordem-title').textContent = 'Editar Orçamento';
+  configurarTextosModalOrdem('orcamento');
   document.getElementById('campos-veiculo').style.display  = 'none';
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
@@ -1567,12 +1598,109 @@ function renderOrcamentos() {
         <td>${statusBadge(o.status)}</td>
         <td>${fmt(o.valor_total)}</td>
         <td>
+          <button class="btn btn-primary btn-xs" onclick="verOrcamento('${o.id}')">Visualizar</button>
+          <button class="btn btn-red btn-xs" onclick="exportarOrcamentoPDFById('${o.id}')">PDF</button>
           <button class="btn btn-outline btn-xs" onclick="editarOrcamento('${o.id}')">Editar</button>
           <button class="btn btn-success btn-xs" onclick="converterOrcamento('${o.id}')">→ OS</button>
           <button class="btn btn-danger btn-xs" onclick="excluirOrcamento('${o.id}')">Excluir</button>
         </td>
       </tr>`).join('')
     : '<tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text-gray)">Nenhum orçamento encontrado.</td></tr>';
+}
+
+function clienteDoOrcamento(orc) {
+  return CACHE.clientes.find(c => c.id === orc.cliente_id) || orc.clientes || {};
+}
+
+function itensDoOrcamento(orc) {
+  return (orc.orcamento_itens || []).map(item => {
+    const produto = CACHE.produtos.find(p => p.id === item.produto_servico_id) || {};
+    return {
+      nome: produto.nome || '—',
+      quantidade: Number(item.quantidade || 0),
+      preco_unitario: Number(item.preco_unitario || 0),
+    };
+  });
+}
+
+function termosOrcamento() {
+  return [
+    'Valores válidos até a data de validade indicada neste orçamento.',
+    'Peças e serviços adicionais identificados durante a execução serão orçados separadamente.',
+    'A aprovação do orçamento autoriza o início dos serviços descritos.',
+  ];
+}
+
+function verOrcamento(id) {
+  const orc = CACHE.orcamentos.find(o => o.id === id);
+  if (!orc) { toast('Orçamento não encontrado.', 'error'); return; }
+  mostrarOrcamento(orc);
+}
+
+function mostrarOrcamento(orc) {
+  const cliente = clienteDoOrcamento(orc);
+  const itens = itensDoOrcamento(orc);
+  documentoAtual = { tipo: 'orcamento', id: orc.id };
+  document.getElementById('modal-documento-title').textContent = 'Orçamento';
+
+  document.getElementById('invoice-content').innerHTML = `
+    <div class="invoice-preview" id="orcamento-para-imprimir">
+      <div class="invoice-header-bar">
+        <div class="invoice-company">
+          <h2>ALFA & ÔMEGA</h2>
+          <p>AUTO MECÂNICA</p>
+          <p style="margin-top:8px;font-size:12px;opacity:.6">Arcoverde — Pernambuco</p>
+        </div>
+        <div class="invoice-num">
+          <small>ORÇAMENTO</small>
+          <div class="num">${orc.numero}</div>
+          <small>Status: ${statusLabel(orc.status)}</small>
+        </div>
+      </div>
+      <div class="invoice-body">
+        <div class="invoice-info-grid">
+          <div class="invoice-info">
+            <h4>Cliente</h4>
+            <p><strong>${cliente.nome || '—'}</strong><br>
+            CPF/CNPJ: ${cliente.cpf_cnpj || '—'}<br>
+            Tel: ${cliente.telefone || '—'}<br>
+            ${cliente.logradouro ? cliente.logradouro + (cliente.cidade ? ', ' + cliente.cidade : '') + (cliente.estado ? '/' + cliente.estado : '') : ''}</p>
+          </div>
+          <div class="invoice-info">
+            <h4>Dados do Orçamento</h4>
+            <p>Emissão: <strong>${fmtDate(orc.criado_em)}</strong><br>
+            Validade: <strong>${orc.validade ? fmtDate(orc.validade) : '—'}</strong><br>
+            Status: ${statusBadge(orc.status)}<br>
+            ${orc.descricao ? 'Observação: ' + orc.descricao : ''}</p>
+          </div>
+        </div>
+        <table class="invoice-table">
+          <thead><tr><th>Produto / Serviço</th><th style="text-align:center">Qtd</th><th style="text-align:right">Vlr. Unit.</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>${itens.length ? itens.map(item => `
+            <tr>
+              <td>${item.nome}</td>
+              <td style="text-align:center">${item.quantidade}</td>
+              <td style="text-align:right">${fmt(item.preco_unitario)}</td>
+              <td style="text-align:right">${fmt(item.quantidade * item.preco_unitario)}</td>
+            </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:20px;color:#8a96b0">Itens não disponíveis</td></tr>'}</tbody>
+        </table>
+        <div class="invoice-total">
+          <div class="invoice-total-box">
+            <div class="total-label">TOTAL DO ORÇAMENTO</div>
+            <div class="total-value">${fmt(orc.valor_total)}</div>
+          </div>
+        </div>
+        <div class="invoice-footer" style="text-align:left">
+          <p><strong>Condições comerciais</strong></p>
+          ${termosOrcamento().map(t => `<p>${t}</p>`).join('')}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px;text-align:center;color:#1a2240">
+            <div style="border-top:1px solid #c5cde0;padding-top:8px">Responsável Alfa & Ômega</div>
+            <div style="border-top:1px solid #c5cde0;padding-top:8px">Aprovação do Cliente</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('modal-nota').classList.add('open');
 }
 
 async function excluirOrcamento(id) {
@@ -1694,6 +1822,8 @@ async function verNota(notaId) {
 function mostrarNota(nota, ordem) {
   const cliente = nota.clientes || {};
   const os      = nota.ordens_servico || ordem || {};
+  documentoAtual = { tipo: 'nota', id: nota.id };
+  document.getElementById('modal-documento-title').textContent = 'Nota Fiscal';
   const itens   = (ordem?.ordem_servico_itens || []).map(item => {
     const p = CACHE.produtos.find(x => x.id === item.produto_servico_id) || { nome: '—' };
     return `<tr>
@@ -2055,14 +2185,211 @@ function gerarPDFNota(nota, itens, ordem) {
   // ── SALVAR ────────────────────────────────────────────────
   doc.save(`${numNF}.pdf`);
 }  
+
+function gerarPDFOrcamento(orc, itens) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const PW = 210, M = 15, RM = 195;
+  const cliente = clienteDoOrcamento(orc);
+  const num = orc.numero || 'ORC';
+
+  const NAVY = [13, 27, 62];
+  const NAVY2 = [22, 34, 71];
+  const RED = [192, 57, 43];
+  const RED_B = [231, 76, 60];
+  const WHITE = [255, 255, 255];
+  const GRAY = [140, 150, 176];
+  const DARK = [26, 34, 64];
+  const LGRAY = [232, 236, 245];
+  const BGINFO = [248, 249, 253];
+
+  let y = 0;
+
+  doc.setFillColor(...NAVY);
+  doc.rect(0, 0, PW, 50, 'F');
+  doc.setFillColor(...RED);
+  doc.rect(0, 0, 5, 50, 'F');
+  doc.rect(0, 47, PW, 3, 'F');
+
+  doc.setFillColor(...NAVY2);
+  doc.circle(30, 25, 13, 'F');
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(1.5);
+  doc.circle(30, 25, 13, 'S');
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.text('A&O', 30, 23, { align: 'center' });
+  doc.setFontSize(5.5);
+  doc.setTextColor(...GRAY);
+  doc.text('AUTO', 30, 27, { align: 'center' });
+  doc.text('MECANICA', 30, 30, { align: 'center' });
+
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(19);
+  doc.text('ALFA & OMEGA', 48, 19);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(180, 195, 220);
+  doc.text('AUTO MECANICA  |  Arcoverde - Pernambuco', 48, 27);
+  doc.setFontSize(8);
+  doc.setTextColor(...GRAY);
+  doc.text('PROPOSTA COMERCIAL DE SERVICOS', 48, 35);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(21);
+  doc.setTextColor(...RED_B);
+  doc.text(sanitize(num), RM, 20, { align: 'right' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(180, 195, 220);
+  doc.text('ORCAMENTO', RM, 29, { align: 'right' });
+  doc.text(`Validade: ${orc.validade ? fmtDate(orc.validade) : '—'}`, RM, 37, { align: 'right' });
+
+  y = 58;
+  const colL = M, colR = 111, boxH = 42;
+  doc.setFillColor(...BGINFO);
+  doc.roundedRect(colL, y, 90, boxH, 3, 3, 'F');
+  doc.roundedRect(colR, y, 84, boxH, 3, 3, 'F');
+  doc.setFillColor(...NAVY);
+  doc.rect(colL, y, 90, 2, 'F');
+  doc.rect(colR, y, 84, 2, 'F');
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRAY);
+  doc.text('CLIENTE', colL + 4, y + 8);
+  doc.setFontSize(10);
+  doc.setTextColor(...DARK);
+  doc.text(sanitize(cliente.nome || '—').substring(0, 32), colL + 4, y + 16);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.text(`CPF/CNPJ: ${sanitize(cliente.cpf_cnpj || '—')}`, colL + 4, y + 23);
+  doc.text(`Tel: ${sanitize(cliente.telefone || '—')}`, colL + 4, y + 29);
+  if (cliente.logradouro) {
+    const end = [cliente.logradouro, cliente.cidade, cliente.estado].filter(Boolean).join(', ');
+    doc.text(sanitize(end).substring(0, 38), colL + 4, y + 35);
+  }
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7.5);
+  doc.setTextColor(...GRAY);
+  doc.text('DADOS DO ORCAMENTO', colR + 4, y + 8);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8.5);
+  doc.setTextColor(...DARK);
+  doc.text(`Emissao: ${fmtDate(orc.criado_em)}`, colR + 4, y + 16);
+  doc.text(`Status: ${sanitize(statusLabel(orc.status))}`, colR + 4, y + 23);
+  if (orc.descricao) {
+    const obs = doc.splitTextToSize(`Obs.: ${sanitize(orc.descricao)}`, 74);
+    doc.text(obs.slice(0, 2), colR + 4, y + 30);
+  }
+
+  y += boxH + 10;
+  doc.setFillColor(...NAVY);
+  doc.rect(0, y - 5, PW, 11, 'F');
+  doc.setFillColor(...RED);
+  doc.rect(0, y - 5, PW, 1.5, 'F');
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8.5);
+  doc.text('PRODUTO / SERVICO', M + 2, y + 1);
+  doc.text('QTD', 128, y + 1, { align: 'center' });
+  doc.text('UNIT.', 158, y + 1, { align: 'right' });
+  doc.text('TOTAL', RM, y + 1, { align: 'right' });
+
+  y += 11;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9.5);
+  const linhaItens = Array.isArray(itens) ? itens : [];
+
+  linhaItens.forEach((item, idx) => {
+    if (y > 245) {
+      doc.addPage();
+      y = 22;
+    }
+    if (idx % 2 === 0) {
+      doc.setFillColor(...BGINFO);
+      doc.rect(0, y - 4.5, PW, 9, 'F');
+    }
+    doc.setTextColor(...DARK);
+    doc.text(sanitize(item.nome || '—').substring(0, 52), M + 2, y);
+    doc.text(String(Number(item.quantidade)), 128, y, { align: 'center' });
+    doc.text(sanitize(fmt(item.preco_unitario)), 158, y, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text(sanitize(fmt(Number(item.quantidade) * Number(item.preco_unitario))), RM, y, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    y += 9;
+    doc.setDrawColor(...LGRAY);
+    doc.setLineWidth(0.25);
+    doc.line(M, y - 3.5, RM, y - 3.5);
+  });
+
+  if (linhaItens.length === 0) {
+    doc.setTextColor(...GRAY);
+    doc.text('Nenhum item registrado neste orcamento.', 105, y + 4, { align: 'center' });
+    y += 12;
+  }
+
+  y += 8;
+  doc.setFillColor(220, 225, 240);
+  doc.roundedRect(132, y + 1, 65, 22, 3, 3, 'F');
+  doc.setFillColor(...NAVY);
+  doc.roundedRect(131, y, 65, 22, 3, 3, 'F');
+  doc.setTextColor(...GRAY);
+  doc.setFontSize(7.5);
+  doc.text('TOTAL DO ORCAMENTO', 163.5, y + 7, { align: 'center' });
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(15);
+  doc.setTextColor(...RED_B);
+  doc.text(sanitize(fmt(orc.valor_total)), RM - 1, y + 18, { align: 'right' });
+
+  y += 34;
+  if (y > 224) {
+    doc.addPage();
+    y = 22;
+  }
+  doc.setDrawColor(...RED);
+  doc.setLineWidth(1);
+  doc.line(M, y, RM, y);
+  y += 7;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(8);
+  doc.setTextColor(...DARK);
+  doc.text('CONDICOES COMERCIAIS', M, y);
+  y += 6;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...DARK);
+  termosOrcamento().forEach(t => {
+    doc.text(`- ${sanitize(t)}`, M, y);
+    y += 5;
+  });
+
+  y += 18;
+  doc.setDrawColor(...LGRAY);
+  doc.line(M, y, 88, y);
+  doc.line(122, y, RM, y);
+  y += 5;
+  doc.setTextColor(...GRAY);
+  doc.text('Responsavel Alfa & Omega', 51.5, y, { align: 'center' });
+  doc.text('Aprovacao do Cliente', 158.5, y, { align: 'center' });
+
+  doc.save(`${sanitize(num)}.pdf`);
+}
   
 // ══════════════════════════════════════════════════════════════
-// PDF
+// PDF / IMPRESSÃO
 // ══════════════════════════════════════════════════════════════
-function imprimirNota() {
-  const conteudo = document.getElementById('nota-para-imprimir').innerHTML;
+function imprimirDocumento() {
+  const preview = document.querySelector('#invoice-content .invoice-preview');
+  if (!preview) { toast('Nenhum documento carregado.', 'error'); return; }
+
+  const conteudo = preview.innerHTML;
+  const titulo = document.getElementById('modal-documento-title')?.textContent || 'Documento';
   const win = window.open('', '_blank');
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Nota Fiscal</title>
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${titulo}</title>
   <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;600;700&family=Barlow+Condensed:wght@700;800&display=swap" rel="stylesheet">
   <style>
     body{font-family:'Barlow',sans-serif;background:#fff;color:#1a2240;margin:0;padding:20px}
@@ -2092,8 +2419,23 @@ function imprimirNota() {
   setTimeout(() => win.print(), 600);
 }
 
+function imprimirNota() { imprimirDocumento(); }
+
+function exportarDocumentoPDF() {
+  if (documentoAtual.tipo === 'orcamento') {
+    exportarOrcamentoPDFById(documentoAtual.id);
+    return;
+  }
+  exportarPDF();
+}
+
 // Chamado pelo botão "Exportar PDF" dentro do modal
 function exportarPDF() {
+  if (documentoAtual.tipo === 'orcamento') {
+    exportarOrcamentoPDFById(documentoAtual.id);
+    return;
+  }
+
   // Recupera a nota que está sendo exibida atualmente
   const numEl = document.querySelector('#invoice-content .num');
   if (!numEl) { toast('Nenhuma nota carregada.', 'error'); return; }
@@ -2113,6 +2455,12 @@ function exportarPDF() {
   });
 
   gerarPDFNota(nota, itens, ordem);
+}
+
+function exportarOrcamentoPDFById(orcamentoId) {
+  const orc = CACHE.orcamentos.find(o => o.id === orcamentoId);
+  if (!orc) { toast('Orçamento não encontrado.', 'error'); return; }
+  gerarPDFOrcamento(orc, itensDoOrcamento(orc));
 }
 
 // Chamado da listagem de notas (sem abrir o modal)
