@@ -1732,7 +1732,8 @@ if (errItens) { toast('Orçamento salvo, mas erro nos itens: ' + errItens.messag
     if (idEdit) {
       const { error } = await sb.from('ordens_servico').update(payload).eq('id', idEdit);
       if (error) { hideLoading(); toast('Erro: ' + error.message, 'error'); return; }
-      await sb.from('ordem_servico_itens').delete().eq('ordem_servico_id', idEdit);
+      const { error: errDel } = await sb.from('ordem_servico_itens').delete().eq('ordem_servico_id', idEdit);
+      if (errDel) { hideLoading(); toast('Erro ao limpar itens: ' + errDel.message, 'error'); return; }
       osId = idEdit;
     } else {
       const { data, error } = await sb.from('ordens_servico').insert(payload).select().single();
