@@ -1553,32 +1553,32 @@ async function editarOrdem(id) {
   const o = CACHE.ordens.find(x => x.id === id);
   if (!o) return;
 
-  // Preenche os campos do modal imediatamente
   document.getElementById('ordem-id').value    = o.id;
   document.getElementById('ordem-tipo').value  = 'ordem';
   document.getElementById('modal-ordem-title').textContent = 'Editar Ordem de Serviço';
-  configurarTextosModalOrdem('ordem');
   document.getElementById('campos-veiculo').style.display  = '';
+
   const sel = document.getElementById('ord-cliente');
   sel.innerHTML = CACHE.clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
   sel.value = o.cliente_id;
-  document.getElementById('ord-data').value     = o.data_entrada;
-  preencherStatus('ordem', o.status || 'em_andamento');
-  document.getElementById('ord-desc').value     = o.descricao || '';
-  document.getElementById('ord-previsao').value = o.data_previsao || '';
-  document.getElementById('ord-veiculo-marca').value  = o.veiculo_marca || '';
-  document.getElementById('ord-veiculo-modelo').value = o.veiculo_modelo || '';
-  document.getElementById('ord-veiculo-ano').value    = o.veiculo_ano || '';
-  document.getElementById('ord-veiculo-placa').value  = o.veiculo_placa || '';
-  document.getElementById('ord-veiculo-km').value     = o.veiculo_km || '';
 
-  // Abre o modal imediatamente com linha vazia (UX melhor — não trava esperando o banco)
+  document.getElementById('ord-data').value           = o.data_entrada || '';
+  document.getElementById('ord-status').value         = o.status || 'em_andamento';
+  document.getElementById('ord-desc').value           = o.descricao || '';
+  document.getElementById('ord-previsao').value       = o.data_previsao || '';
+  document.getElementById('ord-veiculo-marca').value  = o.veiculo_marca  || '';
+  document.getElementById('ord-veiculo-modelo').value = o.veiculo_modelo || '';
+  document.getElementById('ord-veiculo-ano').value    = o.veiculo_ano    || '';
+  document.getElementById('ord-veiculo-placa').value  = o.veiculo_placa  || '';
+  document.getElementById('ord-veiculo-km').value     = o.veiculo_km     || '';
+
+  // Abre o modal imediatamente com linha vazia
   itemRows = [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
   renderItemRows();
   calcTotal();
   document.getElementById('modal-ordem').classList.add('open');
 
-  // Busca os itens DIRETAMENTE do banco — não depende do cache (que pode vir vazio por RLS no join)
+  // Busca os itens direto no banco — não usa o cache (que pode vir vazio)
   showLoading();
   try {
     const { data: itens, error } = await sb
@@ -1586,17 +1586,14 @@ async function editarOrdem(id) {
       .select('*')
       .eq('ordem_servico_id', id);
 
-    if (error) {
-      toast('Erro ao carregar itens da OS: ' + error.message, 'error');
-      return;
-    }
+    if (error) { toast('Erro ao carregar itens: ' + error.message, 'error'); return; }
 
     itemRows = (itens && itens.length > 0)
       ? itens.map(i => ({
-          id: i.id,
+          id:                 i.id,
           produto_servico_id: i.produto_servico_id,
-          quantidade: Number(i.quantidade),
-          preco_unitario: Number(i.preco_unitario)
+          quantidade:         Number(i.quantidade),
+          preco_unitario:     Number(i.preco_unitario),
         }))
       : [{ produto_servico_id: '', quantidade: 1, preco_unitario: 0 }];
 
