@@ -1584,8 +1584,7 @@ async function editarOrdem(id) {
     const { data: itens, error } = await sb
       .from('ordem_servico_itens')
       .select('*')
-      .eq('ordem_servico_id', id)
-      .order('criado_em', { ascending: true });
+      .eq('ordem_servico_id', id);
 
     if (error) {
       toast('Erro ao carregar itens da OS: ' + error.message, 'error');
