@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Alfa & Ômega — Sistema de Gestão</title>
+<!-- Favicon inline — elimina o erro 404 -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -619,7 +621,40 @@ tbody tr:last-child { border-bottom: none; }
 // ══════════════════════════════════════════════════════════════
 const SUPABASE_URL  = 'https://borvvidcelwjaittwzjm.supabase.co';
 const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJvcnZ2aWRjZWx3amFpdHR3emptIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0NjMyNjAsImV4cCI6MjA5MzAzOTI2MH0.FgW8t31lmf9Masm-aR1JzCJffCRjxgVyytoXKCFH-Q8';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Storage customizado: tenta localStorage, cai para sessionStorage se bloqueado
+const customStorage = {
+  getItem: (key) => {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return sessionStorage.getItem(key);
+    }
+  },
+  setItem: (key, value) => {
+    try {
+      localStorage.setItem(key, value);
+    } catch {
+      sessionStorage.setItem(key, value);
+    }
+  },
+  removeItem: (key) => {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      sessionStorage.removeItem(key);
+    }
+  },
+};
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storage: customStorage,       // usa nosso storage com fallback
+    persistSession: true,          // garante que a sessão seja salva
+    autoRefreshToken: true,        // renova o token automaticamente
+    detectSessionInUrl: true,      // necessário para alguns fluxos OAuth
+  }
+});
 
 // ══════════════════════════════════════════════════════════════
 // ESTADO GLOBAL (cache em memória — substituiu o localStorage)
