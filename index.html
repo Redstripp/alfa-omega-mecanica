@@ -2783,7 +2783,7 @@ function gerarPDFNota(nota, itens, ordem) {
   // BLOCOS DE INFORMAÇÃO
   // ══════════════════════════════════════════════════════════
   const colL = M, colR = 111;
-  const boxH = 42;
+  const boxH = 52;
 
   // Caixas de fundo
   doc.setFillColor(...BGINFO);
@@ -2850,7 +2850,7 @@ function gerarPDFNota(nota, itens, ordem) {
   if (os.status) {
     doc.text(
       `Status OS: ${sanitize(statusMap[os.status] || os.status)}`,
-      colR + 4, y + (os.veiculo_modelo ? 30 : 23)
+      colR + 4, y + (os.veiculo_modelo ? 37 : 23)
     );
   }
 
