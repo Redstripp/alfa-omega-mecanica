@@ -1077,7 +1077,7 @@ async function carregarTudo() {
       safe(sb.from('produtos_servicos').select('*').eq('ativo', true).order('nome'), 'produtos'),
       safe(sb.from('ordens_servico').select('*, clientes(nome, cpf_cnpj, telefone), ordem_servico_itens(*)').order('criado_em', { ascending: false }), 'ordens'),
       safe(sb.from('orcamentos').select('*, clientes(nome), orcamento_itens(*)').order('criado_em', { ascending: false }), 'orcamentos'),
-      safe(sb.from('notas_fiscais').select('*, clientes(nome, cpf_cnpj, telefone), ordens_servico(numero)').order('criado_em', { ascending: false }), 'notas'),
+      safe(sb.from('notas_fiscais').select('*, clientes(nome, cpf_cnpj, telefone, logradouro, cidade, estado), ordens_servico(numero, veiculo_marca, veiculo_modelo, veiculo_placa, veiculo_ano, veiculo_km, status)').order('criado_em', { ascending: false }), 'notas'),
       safe(sb.from('pagamentos').select('*').order('data_pagamento', { ascending: false }), 'pagamentos'),
       safe(sb.from('movimentacoes_estoque').select('*, produtos_servicos(nome, unidade_medida)').order('criado_em', { ascending: false }).limit(200), 'movimentacoes_estoque'),
     ]);
