@@ -671,15 +671,35 @@ tbody tr:last-child { border-bottom: none; }
   </div>
 </div>
 
+<!-- Histórico de Pagamentos da Nota -->
+<div class="modal-overlay" id="modal-pagamentos-lista">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-pag-lista-title">Pagamentos da Nota</div>
+      <button class="modal-close" onclick="fecharModal('modal-pagamentos-lista')">×</button>
+    </div>
+    <div class="modal-body" id="modal-pag-lista-body">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="fecharModal('modal-pagamentos-lista')">Fechar</button>
+      <button class="btn btn-success" id="btn-novo-pagamento-lista" onclick="">
+        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+        Novo Pagamento
+      </button>
+    </div>
+  </div>
+</div>  
+
 <!-- Pagamento -->
 <div class="modal-overlay" id="modal-pagamento">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <div class="modal-title">Registrar Pagamento</div>
+      <div class="modal-title" id="modal-pag-title">Registrar Pagamento</div>
       <button class="modal-close" onclick="fecharModal('modal-pagamento')">×</button>
     </div>
     <div class="modal-body">
       <input type="hidden" id="pag-nota-id">
+      <input type="hidden" id="pag-id">
       <div class="mb-16" id="pag-resumo"></div>
       <div class="form-grid mb-16">
         <div class="form-group"><label>Data</label><input type="date" id="pag-data"></div>
@@ -2289,7 +2309,8 @@ function renderFinanceiro() {
         <td>${fmt(resumo.saldo)}</td>
         <td>${statusBadge(resumo.status)}</td>
         <td>
-          <button class="btn btn-success btn-xs" onclick="abrirModalPagamento('${nota.id}')">Pagamento</button>
+          <button class="btn btn-success btn-xs" onclick="abrirModalPagamento('${nota.id}')">+ Pagamento</button>
+          <button class="btn btn-outline btn-xs" onclick="verPagamentosNota('${nota.id}')">Pagamentos</button>
           <button class="btn btn-outline btn-xs" onclick="verNota('${nota.id}')">Nota</button>
         </td>
       </tr>`).join('')
@@ -2312,40 +2333,65 @@ function abrirModalPagamento(notaId) {
 }
 
 async function salvarPagamento() {
-  const notaId = document.getElementById('pag-nota-id').value;
-  const nota = CACHE.notas.find(n => n.id === notaId);
+  const notaId  = document.getElementById('pag-nota-id').value;
+  const pagId   = document.getElementById('pag-id').value;  // preenchido só na edição
+  const nota    = CACHE.notas.find(n => n.id === notaId);
   if (!nota) { toast('Nota não encontrada.', 'error'); return; }
 
   const valor = parseFloat(document.getElementById('pag-valor').value);
   if (!valor || valor <= 0) { toast('Informe um valor válido.', 'error'); return; }
 
   const btn = document.querySelector('#modal-pagamento .btn-primary');
-  if (btn) { btn.disabled = true; btn.textContent = 'Registrando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
 
   showLoading();
   try {
-    const payload = {
-      nota_fiscal_id:   nota.id,
-      ordem_servico_id: nota.ordem_servico_id || null,
-      cliente_id:       nota.cliente_id || null,
-      usuario_id:       currentUser?.id || null,
-      data_pagamento:   document.getElementById('pag-data').value || new Date().toISOString().split('T')[0],
-      valor,
-      metodo:           document.getElementById('pag-metodo').value,
-      observacao:       document.getElementById('pag-obs').value.trim() || null,
-    };
-    const { error } = await sb.from('pagamentos').insert(payload);
-    if (error) {
-      toast('Erro ao registrar pagamento: ' + error.message, 'error');
-      return;
+    const dataPag    = document.getElementById('pag-data').value || new Date().toISOString().split('T')[0];
+    const metodo     = document.getElementById('pag-metodo').value;
+    const observacao = document.getElementById('pag-obs').value.trim() || null;
+
+    if (pagId) {
+      // ── MODO EDIÇÃO ──────────────────────────────────────
+      const { error } = await sb.from('pagamentos').update({
+        data_pagamento: dataPag,
+        valor,
+        metodo,
+        observacao,
+      }).eq('id', pagId);
+
+      if (error) { toast('Erro ao atualizar pagamento: ' + error.message, 'error'); return; }
+      toast('Pagamento atualizado!');
+
+    } else {
+      // ── MODO INSERÇÃO ─────────────────────────────────────
+      const { error } = await sb.from('pagamentos').insert({
+        nota_fiscal_id:   nota.id,
+        ordem_servico_id: nota.ordem_servico_id || null,
+        cliente_id:       nota.cliente_id || null,
+        usuario_id:       currentUser?.id || null,
+        data_pagamento:   dataPag,
+        valor,
+        metodo,
+        observacao,
+      });
+
+      if (error) { toast('Erro ao registrar pagamento: ' + error.message, 'error'); return; }
+      toast('Pagamento registrado!');
     }
-    toast('Pagamento registrado!');
+
     fecharModal('modal-pagamento');
     await recarregarPagamentos();
     renderFinanceiro();
+
+    // Se veio de uma edição, reabre o modal de lista atualizado
+    if (pagId) verPagamentosNota(notaId);
+
   } finally {
     hideLoading();
-    if (btn) { btn.disabled = false; btn.textContent = 'Registrar Pagamento'; }
+    // Reseta o modal para o estado padrão de inserção
+    document.getElementById('pag-id').value = '';
+    document.getElementById('modal-pag-title').textContent = 'Registrar Pagamento';
+    if (btn) { btn.disabled = false; btn.textContent = 'Salvar Pagamento'; }
   }
 }
 
@@ -2358,6 +2404,128 @@ async function recarregarPagamentos() {
   }
   CACHE.pagamentos = data || [];
 }
+
+function verPagamentosNota(notaId) {
+  const nota = CACHE.notas.find(n => n.id === notaId);
+  if (!nota) { toast('Nota não encontrada.', 'error'); return; }
+
+  const pagamentos = CACHE.pagamentos.filter(p => p.nota_fiscal_id === notaId);
+  const resumo = resumoFinanceiroNota(nota);
+
+  const metodosLabel = {
+    dinheiro: 'Dinheiro', pix: 'Pix',
+    cartao_credito: 'Cartão crédito', cartao_debito: 'Cartão débito',
+    transferencia: 'Transferência', boleto: 'Boleto', outro: 'Outro',
+  };
+
+  document.getElementById('modal-pag-lista-title').textContent =
+    `Pagamentos — ${nota.numero_nf}`;
+
+  // Configura o botão "Novo Pagamento" do modal de lista
+  document.getElementById('btn-novo-pagamento-lista').onclick =
+    () => { fecharModal('modal-pagamentos-lista'); abrirModalPagamento(notaId); };
+
+  document.getElementById('modal-pag-lista-body').innerHTML = `
+    <!-- Resumo da nota -->
+    <div style="background:var(--off-white);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:16px;display:flex;gap:24px;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:11px;color:var(--text-gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Total da Nota</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--navy)">${fmt(resumo.total)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Total Pago</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:var(--success)">${fmt(resumo.pago)}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text-gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:2px">Saldo</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:${resumo.saldo > 0 ? 'var(--warning)' : 'var(--success)'}">${fmt(resumo.saldo)}</div>
+      </div>
+      <div style="margin-left:auto;align-self:center">${statusBadge(resumo.status)}</div>
+    </div>
+
+    <!-- Lista de pagamentos -->
+    ${pagamentos.length === 0
+      ? `<div class="empty-state" style="padding:40px 20px">
+           <p style="color:var(--text-gray)">Nenhum pagamento registrado para esta nota.</p>
+         </div>`
+      : `<div class="table-wrap">
+           <table>
+             <thead>
+               <tr>
+                 <th>Data</th>
+                 <th>Forma</th>
+                 <th>Observação</th>
+                 <th style="text-align:right">Valor</th>
+                 <th>Ações</th>
+               </tr>
+             </thead>
+             <tbody>
+               ${pagamentos.map(p => `
+                 <tr>
+                   <td>${fmtDate(p.data_pagamento)}</td>
+                   <td>${metodosLabel[p.metodo] || p.metodo || '—'}</td>
+                   <td style="color:var(--text-gray);font-size:13px">${p.observacao || '—'}</td>
+                   <td style="text-align:right;font-weight:700;color:var(--navy)">${fmt(p.valor)}</td>
+                   <td>
+                     <button class="btn btn-outline btn-xs" onclick="editarPagamento('${p.id}','${notaId}')">Editar</button>
+                     <button class="btn btn-danger btn-xs" onclick="excluirPagamento('${p.id}','${notaId}')">Excluir</button>
+                   </td>
+                 </tr>`).join('')}
+             </tbody>
+           </table>
+         </div>`
+    }`;
+
+  document.getElementById('modal-pagamentos-lista').classList.add('open');
+}
+
+function editarPagamento(pagamentoId, notaId) {
+  const pag = CACHE.pagamentos.find(p => p.id === pagamentoId);
+  const nota = CACHE.notas.find(n => n.id === notaId);
+  if (!pag || !nota) { toast('Pagamento não encontrado.', 'error'); return; }
+
+  const resumo = resumoFinanceiroNota(nota);
+
+  // Preenche o modal de pagamento com os dados do lançamento
+  document.getElementById('modal-pag-title').textContent   = 'Editar Pagamento';
+  document.getElementById('pag-id').value                  = pag.id;
+  document.getElementById('pag-nota-id').value             = notaId;
+  document.getElementById('pag-data').value                = toDateStr(pag.data_pagamento);
+  document.getElementById('pag-valor').value               = Number(pag.valor).toFixed(2);
+  document.getElementById('pag-metodo').value              = pag.metodo || 'pix';
+  document.getElementById('pag-obs').value                 = pag.observacao || '';
+
+  // Resumo da nota no modal
+  document.getElementById('pag-resumo').innerHTML = `
+    <p><strong>${nota.numero_nf}</strong> — ${nota.clientes?.nome || 'Cliente não informado'}</p>
+    <p class="text-muted">Total: ${fmt(resumo.total)} | Pago: ${fmt(resumo.pago)} | Saldo: ${fmt(resumo.saldo)}</p>
+    <p style="margin-top:6px;font-size:12px;color:var(--warning);font-weight:600">✎ Editando lançamento existente</p>`;
+
+  // Atualiza o texto do botão de salvar
+  const btn = document.querySelector('#modal-pagamento .btn-primary');
+  if (btn) btn.textContent = 'Salvar Alteração';
+
+  // Fecha o modal de lista e abre o de edição
+  fecharModal('modal-pagamentos-lista');
+  document.getElementById('modal-pagamento').classList.add('open');
+}
+
+async function excluirPagamento(pagamentoId, notaId) {
+  if (!confirm('Excluir este pagamento? O valor será devolvido ao saldo da nota.')) return;
+
+  showLoading();
+  try {
+    const { error } = await sb.from('pagamentos').delete().eq('id', pagamentoId);
+    if (error) { toast('Erro ao excluir pagamento: ' + error.message, 'error'); return; }
+    toast('Pagamento removido.');
+    await recarregarPagamentos();
+    renderFinanceiro();
+    // Reabre o modal de lista atualizado
+    verPagamentosNota(notaId);
+  } finally {
+    hideLoading();
+  }
+}  
 
 // ══════════════════════════════════════════════════════════════
 // NOTAS FISCAIS
