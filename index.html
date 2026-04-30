@@ -170,8 +170,8 @@ tbody tr:last-child { border-bottom: none; }
 
 /* ── OS ITEMS ── */
 .order-items-editor { border: 1px solid var(--light-gray); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 12px; }
-.order-items-header { display: grid; grid-template-columns: 2fr 1fr 1fr 80px; gap: 8px; padding: 8px 12px; background: var(--off-white); font-size: 12px; font-weight: 600; color: var(--text-gray); text-transform: uppercase; letter-spacing: .5px; }
-.order-item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 80px; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--light-gray); align-items: center; }
+.order-items-header { display: grid; grid-template-columns: 2fr 1fr 1fr 44px; gap: 8px; padding: 8px 12px; background: var(--off-white); font-size: 12px; font-weight: 600; color: var(--text-gray); text-transform: uppercase; letter-spacing: .5px; }
+.order-item-row { display: grid; grid-template-columns: 2fr 1fr 1fr 44px; gap: 8px; padding: 8px 12px; border-top: 1px solid var(--light-gray); align-items: center; }
 .order-item-row select, .order-item-row input { padding: 6px 10px; font-size: 13px; }
 .total-display { background: var(--navy); color: var(--white); border-radius: var(--radius-sm); padding: 14px 20px; display: flex; justify-content: space-between; align-items: center; }
 .total-display .label { font-size: 14px; opacity: .8; }
@@ -1724,7 +1724,7 @@ function renderItemRows() {
       </select>
       <input type="number" min="0.001" step="0.001" value="${item.quantidade}" onchange="itemChange(${idx},'quantidade',this.value)">
       <input type="number" step="0.01" value="${item.preco_unitario}" onchange="itemChange(${idx},'preco_unitario',this.value)">
-      <button class="btn btn-danger btn-xs" onclick="removeItemRow(${idx})">Remover</button>
+      <button class="btn btn-danger btn-xs" onclick="removeItemRow(${idx})" title="Remover item" style="padding:6px 10px;min-width:36px;justify-content:center"><svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg></button>
     </div>`).join('');
 }
 
