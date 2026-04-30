@@ -2578,7 +2578,7 @@ async function gerarNotaFiscal(ordemId) {
     valor_desconto:   Number(ordem.desconto_total || 0),
     valor_total:      Number(ordem.valor_total),
     numero_nf:        gerarNumero('NF', CACHE.notas),
-  }).select(`*, clientes(nome, cpf_cnpj, telefone, logradouro, cidade, estado), ordens_servico(numero, veiculo_marca, veiculo_modelo, veiculo_placa, data_previsao, status)`).single();
+  }).select(`*, clientes(nome, cpf_cnpj, telefone, logradouro, cidade, estado), ordens_servico(numero, veiculo_marca, veiculo_modelo, veiculo_placa, veiculo_ano, veiculo_km, data_previsao, status)`).single();
 
   hideLoading();
   if (error) { toast('Erro ao gerar nota: ' + error.message, 'error'); return; }
@@ -2636,7 +2636,12 @@ function mostrarNota(nota, ordem) {
             <h4>Dados da Nota</h4>
             <p>Emissão: <strong>${fmtDate(nota.data_emissao)}</strong><br>
             Ordem de Serviço: <strong>${os.numero || '—'}</strong><br>
-            ${os.veiculo_modelo ? 'Veículo: ' + [os.veiculo_marca, os.veiculo_modelo, os.veiculo_placa].filter(Boolean).join(' ') + '<br>' : ''}
+            ${os.veiculo_modelo ? `
+                Veículo: <strong>${[os.veiculo_marca, os.veiculo_modelo].filter(Boolean).join(' ')}</strong><br>
+                ${os.veiculo_placa ? 'Placa: <strong>' + os.veiculo_placa + '</strong><br>' : ''}
+                ${os.veiculo_ano   ? 'Ano: <strong>' + os.veiculo_ano + '</strong><br>' : ''}
+                ${os.veiculo_km    ? 'KM: <strong>' + Number(os.veiculo_km).toLocaleString('pt-BR') + ' km</strong><br>' : ''}
+              ` : ''}
             Status OS: ${os.status ? statusBadge(os.status) : '—'}</p>
           </div>
         </div>
@@ -2667,7 +2672,7 @@ function mostrarNota(nota, ordem) {
 
 async function recarregarNotas() {
   const { data, error } = await sb.from('notas_fiscais')
-    .select('*, clientes(nome, cpf_cnpj, telefone, logradouro, cidade, estado), ordens_servico(numero, veiculo_marca, veiculo_modelo, veiculo_placa, status)')
+    .select('*, clientes(nome, cpf_cnpj, telefone, logradouro, cidade, estado), ordens_servico(numero, veiculo_marca, veiculo_modelo, veiculo_placa, veiculo_ano, veiculo_km, status)')
     .order('criado_em', { ascending: false });
   if (error) {
     console.error('[recarregarNotas] Erro:', error.message);
@@ -2827,9 +2832,14 @@ function gerarPDFNota(nota, itens, ordem) {
   doc.text(`Ordem de Servico: ${sanitize(os.numero || '—')}`, colR + 4, y + 16);
 
   if (os.veiculo_modelo) {
-    const vei = [os.veiculo_marca, os.veiculo_modelo, os.veiculo_placa]
-      .filter(Boolean).join(' ');
+    const vei = [os.veiculo_marca, os.veiculo_modelo].filter(Boolean).join(' ');
     doc.text(`Veiculo: ${sanitize(vei).substring(0, 28)}`, colR + 4, y + 23);
+    const detalhes = [
+      os.veiculo_placa ? `Placa: ${os.veiculo_placa}` : null,
+      os.veiculo_ano   ? `Ano: ${os.veiculo_ano}` : null,
+      os.veiculo_km    ? `KM: ${Number(os.veiculo_km).toLocaleString('pt-BR')}` : null,
+    ].filter(Boolean).join('  |  ');
+    if (detalhes) doc.text(sanitize(detalhes).substring(0, 38), colR + 4, y + 30);
   }
 
   const statusMap = {
