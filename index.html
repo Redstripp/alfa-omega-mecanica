@@ -2322,6 +2322,8 @@ function abrirModalPagamento(notaId) {
   if (!nota) { toast('Nota não encontrada.', 'error'); return; }
   const resumo = resumoFinanceiroNota(nota);
   document.getElementById('pag-nota-id').value = nota.id;
+  document.getElementById('pag-id').value = '';                              // ← reset do ID de edição
+  document.getElementById('modal-pag-title').textContent = 'Registrar Pagamento'; // ← reset do título
   document.getElementById('pag-data').value = new Date().toISOString().split('T')[0];
   document.getElementById('pag-valor').value = resumo.saldo.toFixed(2);
   document.getElementById('pag-metodo').value = 'pix';
