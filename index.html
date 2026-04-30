@@ -2342,6 +2342,7 @@ async function salvarPagamento() {
 
   const valor = parseFloat(document.getElementById('pag-valor').value) || 0;
   if (valor < 0) { toast('O valor não pode ser negativo.', 'error'); return; }
+  // valor === 0 é permitido — usado para anotações sem movimento financeiro
 
   const btn = document.querySelector('#modal-pagamento .btn-primary');
   if (btn) { btn.disabled = true; btn.textContent = 'Salvando...'; }
