@@ -2737,16 +2737,8 @@ function gerarPDFNota(nota, itens, ordem) {
   doc.setFillColor(...RED);
   doc.rect(0, 47, PW, 3, 'F');
 
-  // Selo circular (simula engrenagem/logo)
-  doc.setFillColor(...NAVY2);
-  doc.circle(30, 25, 13, 'F');
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(1.5);
-  doc.circle(30, 25, 13, 'S');
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('A&O', 30, 23, { align: 'center' });
+  // Logo real da oficina
+  doc.addImage(LOGO_BASE64, 'PNG', 17, 12, 26, 26);
   doc.setFontSize(5.5);
   doc.setTextColor(...GRAY);
   doc.text('AUTO', 30, 27, { align: 'center' });
@@ -3047,19 +3039,8 @@ function gerarPDFOrcamento(orc, itens) {
   doc.rect(0, 0, 5, 50, 'F');
   doc.rect(0, 47, PW, 3, 'F');
 
-  doc.setFillColor(...NAVY2);
-  doc.circle(30, 25, 13, 'F');
-  doc.setDrawColor(...RED);
-  doc.setLineWidth(1.5);
-  doc.circle(30, 25, 13, 'S');
-  doc.setTextColor(...WHITE);
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(7);
-  doc.text('A&O', 30, 23, { align: 'center' });
-  doc.setFontSize(5.5);
-  doc.setTextColor(...GRAY);
-  doc.text('AUTO', 30, 27, { align: 'center' });
-  doc.text('MECANICA', 30, 30, { align: 'center' });
+  // Logo real da oficina
+  doc.addImage(LOGO_BASE64, 'PNG', 17, 12, 26, 26);
 
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
