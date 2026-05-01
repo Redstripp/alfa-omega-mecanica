@@ -2591,7 +2591,7 @@ async function gerarNotaFiscal(ordemId) {
     cliente_id:       ordem.cliente_id,
     usuario_id:       currentUser.id,
     data_emissao:     new Date().toISOString().split('T')[0],
-    valor_subtotal:   Number(ordem.valor_total),
+    valor_subtotal:   Number(ordem.valor_total) + Number(ordem.desconto_total || 0),
     valor_desconto:   Number(ordem.desconto_total || 0),
     valor_total:      Number(ordem.valor_total),
     numero_nf:        gerarNumero('NF', CACHE.notas),
@@ -2891,6 +2891,7 @@ function gerarPDFNota(nota, itens, ordem, logoJPEG) {
 
   linhaItens.forEach((item, idx) => {
     // Zebrado
+    if (y > 260) { doc.addPage(); y = 20; }
     if (idx % 2 === 0) {
       doc.setFillColor(...BGINFO);
       doc.rect(0, y - 4.5, PW, 9, 'F');
@@ -3935,12 +3936,18 @@ async function gerarRelatorio() {
   if (!ini || !fim) { toast('Selecione o período.', 'error'); return; }
 
   showLoading();
-  const { data: lista } = await sb.from('ordens_servico')
-    .select('*, clientes(nome)')
-    .gte('data_entrada', ini)
-    .lte('data_entrada', fim)
-    .order('data_entrada');
-  hideLoading();
+  let lista;
+  try {
+    const { data, error } = await sb.from('ordens_servico')
+      .select('*, clientes(nome)')
+      .gte('data_entrada', ini)
+      .lte('data_entrada', fim)
+      .order('data_entrada');
+    if (error) { toast('Erro ao buscar ordens: ' + error.message, 'error'); return; }
+    lista = data || [];
+  } finally {
+    hideLoading();
+  }
 
   const total      = (lista || []).reduce((s, o) => s + Number(o.valor_total), 0);
   const concluidas = (lista || []).filter(o => ['concluido', 'entregue'].includes(o.status)).length;
